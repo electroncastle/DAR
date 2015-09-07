@@ -1,0 +1,2282 @@
+Log file created at: 2015/08/08 03:06:23
+Running on machine: workhorse
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I0808 03:06:23.332664  2843 common.cpp:49] Running parallel training with MPI support!
+I0808 03:06:23.336422  2843 caffe.cpp:174] Starting Optimization
+I0808 03:06:23.336477  2843 solver.cpp:32] Initializing solver from parameters: 
+test_iter: 170
+test_interval: 500
+base_lr: 0.001
+display: 20
+max_iter: 30000
+lr_policy: "step"
+gamma: 0.1
+momentum: 0.9
+weight_decay: 0.0005
+stepsize: 10000
+snapshot: 1000
+snapshot_prefix: "two-streams_16_split1_flow-2"
+device_id: 0
+device_id: 1
+net: "../models/two-streams/vgg_16_flow_train_val_fast.prototxt"
+test_initialization: true
+iter_size: 2
+I0808 03:06:23.336493  2843 solver.cpp:70] Creating training net from net file: ../models/two-streams/vgg_16_flow_train_val_fast.prototxt
+I0808 03:06:23.337363  2843 net.cpp:327] The NetState phase (0) differed from the phase (1) specified by a rule in layer data
+I0808 03:06:23.337394  2843 net.cpp:327] The NetState phase (0) differed from the phase (1) specified by a rule in layer loss
+I0808 03:06:23.337399  2843 net.cpp:327] The NetState phase (0) differed from the phase (1) specified by a rule in layer accuracy
+I0808 03:06:23.337595  2843 net.cpp:42] Initializing net from parameters: 
+name: "CUHK_Action_TemporalNet"
+state {
+  phase: TRAIN
+}
+layer {
+  name: "data"
+  type: "VideoData"
+  top: "data"
+  top: "label_local"
+  include {
+    phase: TRAIN
+  }
+  transform_param {
+    mirror: true
+    crop_size: 224
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    fix_crop: true
+    multi_scale: true
+    scale_ratios: 1
+    scale_ratios: 0.875
+    scale_ratios: 0.75
+    max_distort: 1
+    is_flow: true
+  }
+  video_data_param {
+    source: "/home/jiri/Lake/HAR/datasets/UCF-101/train-2-rnd.txt"
+    batch_size: 64
+    new_length: 10
+    num_segments: 1
+    modality: FLOW
+  }
+}
+layer {
+  name: "conv1_1"
+  type: "Convolution"
+  bottom: "data"
+  top: "conv1_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 64
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu1_1"
+  type: "ReLU"
+  bottom: "conv1_1"
+  top: "conv1_1"
+}
+layer {
+  name: "conv1_2"
+  type: "Convolution"
+  bottom: "conv1_1"
+  top: "conv1_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 64
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu1_2"
+  type: "ReLU"
+  bottom: "conv1_2"
+  top: "conv1_2"
+}
+layer {
+  name: "pool1"
+  type: "Pooling"
+  bottom: "conv1_2"
+  top: "pool1"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv2_1"
+  type: "Convolution"
+  bottom: "pool1"
+  top: "conv2_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 128
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu2_1"
+  type: "ReLU"
+  bottom: "conv2_1"
+  top: "conv2_1"
+}
+layer {
+  name: "conv2_2"
+  type: "Convolution"
+  bottom: "conv2_1"
+  top: "conv2_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 128
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu2_2"
+  type: "ReLU"
+  bottom: "conv2_2"
+  top: "conv2_2"
+}
+layer {
+  name: "pool2"
+  type: "Pooling"
+  bottom: "conv2_2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv3_1"
+  type: "Convolution"
+  bottom: "pool2"
+  top: "conv3_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 256
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu3_1"
+  type: "ReLU"
+  bottom: "conv3_1"
+  top: "conv3_1"
+}
+layer {
+  name: "conv3_2"
+  type: "Convolution"
+  bottom: "conv3_1"
+  top: "conv3_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 256
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu3_2"
+  type: "ReLU"
+  bottom: "conv3_2"
+  top: "conv3_2"
+}
+layer {
+  name: "conv3_3"
+  type: "Convolution"
+  bottom: "conv3_2"
+  top: "conv3_3"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 256
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu3_3"
+  type: "ReLU"
+  bottom: "conv3_3"
+  top: "conv3_3"
+}
+layer {
+  name: "pool3"
+  type: "Pooling"
+  bottom: "conv3_3"
+  top: "pool3"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv4_1"
+  type: "Convolution"
+  bottom: "pool3"
+  top: "conv4_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu4_1"
+  type: "ReLU"
+  bottom: "conv4_1"
+  top: "conv4_1"
+}
+layer {
+  name: "conv4_2"
+  type: "Convolution"
+  bottom: "conv4_1"
+  top: "conv4_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu4_2"
+  type: "ReLU"
+  bottom: "conv4_2"
+  top: "conv4_2"
+}
+layer {
+  name: "conv4_3"
+  type: "Convolution"
+  bottom: "conv4_2"
+  top: "conv4_3"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu4_3"
+  type: "ReLU"
+  bottom: "conv4_3"
+  top: "conv4_3"
+}
+layer {
+  name: "pool4"
+  type: "Pooling"
+  bottom: "conv4_3"
+  top: "pool4"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv5_1"
+  type: "Convolution"
+  bottom: "pool4"
+  top: "conv5_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu5_1"
+  type: "ReLU"
+  bottom: "conv5_1"
+  top: "conv5_1"
+}
+layer {
+  name: "conv5_2"
+  type: "Convolution"
+  bottom: "conv5_1"
+  top: "conv5_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu5_2"
+  type: "ReLU"
+  bottom: "conv5_2"
+  top: "conv5_2"
+}
+layer {
+  name: "conv5_3"
+  type: "Convolution"
+  bottom: "conv5_2"
+  top: "conv5_3"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu5_3"
+  type: "ReLU"
+  bottom: "conv5_3"
+  top: "conv5_3"
+}
+layer {
+  name: "pool5"
+  type: "Pooling"
+  bottom: "conv5_3"
+  top: "pool5_local"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "gather"
+  type: "Gather"
+  bottom: "pool5_local"
+  bottom: "label_local"
+  top: "pool5"
+  top: "label"
+}
+layer {
+  name: "fc6"
+  type: "InnerProduct"
+  bottom: "pool5"
+  top: "fc6"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 4096
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu6"
+  type: "ReLU"
+  bottom: "fc6"
+  top: "fc6"
+}
+layer {
+  name: "drop6"
+  type: "Dropout"
+  bottom: "fc6"
+  top: "fc6"
+  dropout_param {
+    dropout_ratio: 0.9
+  }
+}
+layer {
+  name: "fc7"
+  type: "InnerProduct"
+  bottom: "fc6"
+  top: "fc7"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 4096
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu7"
+  type: "ReLU"
+  bottom: "fc7"
+  top: "fc7"
+}
+layer {
+  name: "drop7"
+  type: "Dropout"
+  bottom: "fc7"
+  top: "fc7"
+  dropout_param {
+    dropout_ratio: 0.8
+  }
+}
+layer {
+  name: "fc8-1"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "fc8-1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 101
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "loss"
+  type: "SoftmaxWithLoss"
+  bottom: "fc8-1"
+  bottom: "label"
+  include {
+    phase: TRAIN
+  }
+}
+I0808 03:06:23.337741  2843 layer_factory.hpp:74] Creating layer data
+I0808 03:06:23.337765  2843 net.cpp:91] Creating Layer data
+I0808 03:06:23.337770  2843 net.cpp:408] data -> data
+I0808 03:06:23.337790  2843 net.cpp:408] data -> label_local
+I0808 03:06:23.337797  2843 net.cpp:151] Setting up data
+I0808 03:06:23.338188  2843 video_data_layer.cpp:34] Opening file: /home/jiri/Lake/HAR/datasets/UCF-101/train-2-rnd.txt
+I0808 03:06:23.344897  2843 video_data_layer.cpp:50] A total of 9537 videos.
+I0808 03:06:23.360802  2843 video_data_layer.cpp:76] output data size: 64,20,224,224
+I0808 03:06:23.410491  2843 net.cpp:158] Top shape: 64 20 224 224 (64225280)
+I0808 03:06:23.410526  2843 net.cpp:158] Top shape: 64 1 1 1 (64)
+I0808 03:06:23.410537  2843 layer_factory.hpp:74] Creating layer conv1_1
+I0808 03:06:23.410557  2843 net.cpp:91] Creating Layer conv1_1
+I0808 03:06:23.410565  2843 net.cpp:452] conv1_1 <- data
+I0808 03:06:23.410578  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.410588  2843 net.cpp:408] conv1_1 -> conv1_1
+I0808 03:06:23.410606  2843 net.cpp:151] Setting up conv1_1
+I0808 03:06:23.490870  2843 net.cpp:158] Top shape: 64 64 224 224 (205520896)
+I0808 03:06:23.490903  2843 layer_factory.hpp:74] Creating layer relu1_1
+I0808 03:06:23.490918  2843 net.cpp:91] Creating Layer relu1_1
+I0808 03:06:23.490923  2843 net.cpp:452] relu1_1 <- conv1_1
+I0808 03:06:23.490931  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.490936  2843 net.cpp:397] relu1_1 -> conv1_1 (in-place)
+I0808 03:06:23.490944  2843 net.cpp:151] Setting up relu1_1
+I0808 03:06:23.491030  2843 net.cpp:158] Top shape: 64 64 224 224 (205520896)
+I0808 03:06:23.491040  2843 layer_factory.hpp:74] Creating layer conv1_2
+I0808 03:06:23.491051  2843 net.cpp:91] Creating Layer conv1_2
+I0808 03:06:23.491055  2843 net.cpp:452] conv1_2 <- conv1_1
+I0808 03:06:23.491061  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.491067  2843 net.cpp:408] conv1_2 -> conv1_2
+I0808 03:06:23.491076  2843 net.cpp:151] Setting up conv1_2
+I0808 03:06:23.491719  2843 net.cpp:158] Top shape: 64 64 224 224 (205520896)
+I0808 03:06:23.491737  2843 layer_factory.hpp:74] Creating layer relu1_2
+I0808 03:06:23.491746  2843 net.cpp:91] Creating Layer relu1_2
+I0808 03:06:23.491751  2843 net.cpp:452] relu1_2 <- conv1_2
+I0808 03:06:23.491756  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.491762  2843 net.cpp:397] relu1_2 -> conv1_2 (in-place)
+I0808 03:06:23.491768  2843 net.cpp:151] Setting up relu1_2
+I0808 03:06:23.491967  2843 net.cpp:158] Top shape: 64 64 224 224 (205520896)
+I0808 03:06:23.491977  2843 layer_factory.hpp:74] Creating layer pool1
+I0808 03:06:23.491989  2843 net.cpp:91] Creating Layer pool1
+I0808 03:06:23.491993  2843 net.cpp:452] pool1 <- conv1_2
+I0808 03:06:23.491998  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.492003  2843 net.cpp:408] pool1 -> pool1
+I0808 03:06:23.492045  2843 net.cpp:151] Setting up pool1
+I0808 03:06:23.492127  2843 net.cpp:158] Top shape: 64 64 112 112 (51380224)
+I0808 03:06:23.492136  2843 layer_factory.hpp:74] Creating layer conv2_1
+I0808 03:06:23.492146  2843 net.cpp:91] Creating Layer conv2_1
+I0808 03:06:23.492151  2843 net.cpp:452] conv2_1 <- pool1
+I0808 03:06:23.492156  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.492161  2843 net.cpp:408] conv2_1 -> conv2_1
+I0808 03:06:23.492169  2843 net.cpp:151] Setting up conv2_1
+I0808 03:06:23.493048  2843 net.cpp:158] Top shape: 64 128 112 112 (102760448)
+I0808 03:06:23.493065  2843 layer_factory.hpp:74] Creating layer relu2_1
+I0808 03:06:23.493073  2843 net.cpp:91] Creating Layer relu2_1
+I0808 03:06:23.493077  2843 net.cpp:452] relu2_1 <- conv2_1
+I0808 03:06:23.493083  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.493087  2843 net.cpp:397] relu2_1 -> conv2_1 (in-place)
+I0808 03:06:23.493093  2843 net.cpp:151] Setting up relu2_1
+I0808 03:06:23.493155  2843 net.cpp:158] Top shape: 64 128 112 112 (102760448)
+I0808 03:06:23.493163  2843 layer_factory.hpp:74] Creating layer conv2_2
+I0808 03:06:23.493173  2843 net.cpp:91] Creating Layer conv2_2
+I0808 03:06:23.493176  2843 net.cpp:452] conv2_2 <- conv2_1
+I0808 03:06:23.493181  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.493186  2843 net.cpp:408] conv2_2 -> conv2_2
+I0808 03:06:23.493193  2843 net.cpp:151] Setting up conv2_2
+I0808 03:06:23.494536  2843 net.cpp:158] Top shape: 64 128 112 112 (102760448)
+I0808 03:06:23.494552  2843 layer_factory.hpp:74] Creating layer relu2_2
+I0808 03:06:23.494560  2843 net.cpp:91] Creating Layer relu2_2
+I0808 03:06:23.494565  2843 net.cpp:452] relu2_2 <- conv2_2
+I0808 03:06:23.494570  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.494575  2843 net.cpp:397] relu2_2 -> conv2_2 (in-place)
+I0808 03:06:23.494581  2843 net.cpp:151] Setting up relu2_2
+I0808 03:06:23.494643  2843 net.cpp:158] Top shape: 64 128 112 112 (102760448)
+I0808 03:06:23.494652  2843 layer_factory.hpp:74] Creating layer pool2
+I0808 03:06:23.494659  2843 net.cpp:91] Creating Layer pool2
+I0808 03:06:23.494663  2843 net.cpp:452] pool2 <- conv2_2
+I0808 03:06:23.494668  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.494674  2843 net.cpp:408] pool2 -> pool2
+I0808 03:06:23.494680  2843 net.cpp:151] Setting up pool2
+I0808 03:06:23.494887  2843 net.cpp:158] Top shape: 64 128 56 56 (25690112)
+I0808 03:06:23.494899  2843 layer_factory.hpp:74] Creating layer conv3_1
+I0808 03:06:23.494906  2843 net.cpp:91] Creating Layer conv3_1
+I0808 03:06:23.494910  2843 net.cpp:452] conv3_1 <- pool2
+I0808 03:06:23.494915  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.494920  2843 net.cpp:408] conv3_1 -> conv3_1
+I0808 03:06:23.494930  2843 net.cpp:151] Setting up conv3_1
+I0808 03:06:23.497622  2843 net.cpp:158] Top shape: 64 256 56 56 (51380224)
+I0808 03:06:23.497648  2843 layer_factory.hpp:74] Creating layer relu3_1
+I0808 03:06:23.497658  2843 net.cpp:91] Creating Layer relu3_1
+I0808 03:06:23.497663  2843 net.cpp:452] relu3_1 <- conv3_1
+I0808 03:06:23.497669  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.497674  2843 net.cpp:397] relu3_1 -> conv3_1 (in-place)
+I0808 03:06:23.497683  2843 net.cpp:151] Setting up relu3_1
+I0808 03:06:23.497750  2843 net.cpp:158] Top shape: 64 256 56 56 (51380224)
+I0808 03:06:23.497757  2843 layer_factory.hpp:74] Creating layer conv3_2
+I0808 03:06:23.497766  2843 net.cpp:91] Creating Layer conv3_2
+I0808 03:06:23.497771  2843 net.cpp:452] conv3_2 <- conv3_1
+I0808 03:06:23.497776  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.497782  2843 net.cpp:408] conv3_2 -> conv3_2
+I0808 03:06:23.497791  2843 net.cpp:151] Setting up conv3_2
+I0808 03:06:23.502873  2843 net.cpp:158] Top shape: 64 256 56 56 (51380224)
+I0808 03:06:23.502903  2843 layer_factory.hpp:74] Creating layer relu3_2
+I0808 03:06:23.502939  2843 net.cpp:91] Creating Layer relu3_2
+I0808 03:06:23.502946  2843 net.cpp:452] relu3_2 <- conv3_2
+I0808 03:06:23.502954  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.502959  2843 net.cpp:397] relu3_2 -> conv3_2 (in-place)
+I0808 03:06:23.502967  2843 net.cpp:151] Setting up relu3_2
+I0808 03:06:23.503031  2843 net.cpp:158] Top shape: 64 256 56 56 (51380224)
+I0808 03:06:23.503041  2843 layer_factory.hpp:74] Creating layer conv3_3
+I0808 03:06:23.503052  2843 net.cpp:91] Creating Layer conv3_3
+I0808 03:06:23.503058  2843 net.cpp:452] conv3_3 <- conv3_2
+I0808 03:06:23.503064  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.503072  2843 net.cpp:408] conv3_3 -> conv3_3
+I0808 03:06:23.503080  2843 net.cpp:151] Setting up conv3_3
+I0808 03:06:23.508260  2843 net.cpp:158] Top shape: 64 256 56 56 (51380224)
+I0808 03:06:23.508290  2843 layer_factory.hpp:74] Creating layer relu3_3
+I0808 03:06:23.508307  2843 net.cpp:91] Creating Layer relu3_3
+I0808 03:06:23.508313  2843 net.cpp:452] relu3_3 <- conv3_3
+I0808 03:06:23.508322  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.508327  2843 net.cpp:397] relu3_3 -> conv3_3 (in-place)
+I0808 03:06:23.508335  2843 net.cpp:151] Setting up relu3_3
+I0808 03:06:23.508420  2843 net.cpp:158] Top shape: 64 256 56 56 (51380224)
+I0808 03:06:23.508430  2843 layer_factory.hpp:74] Creating layer pool3
+I0808 03:06:23.508440  2843 net.cpp:91] Creating Layer pool3
+I0808 03:06:23.508445  2843 net.cpp:452] pool3 <- conv3_3
+I0808 03:06:23.508450  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.508455  2843 net.cpp:408] pool3 -> pool3
+I0808 03:06:23.508462  2843 net.cpp:151] Setting up pool3
+I0808 03:06:23.508692  2843 net.cpp:158] Top shape: 64 256 28 28 (12845056)
+I0808 03:06:23.508705  2843 layer_factory.hpp:74] Creating layer conv4_1
+I0808 03:06:23.508715  2843 net.cpp:91] Creating Layer conv4_1
+I0808 03:06:23.508719  2843 net.cpp:452] conv4_1 <- pool3
+I0808 03:06:23.508725  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.508733  2843 net.cpp:408] conv4_1 -> conv4_1
+I0808 03:06:23.508741  2843 net.cpp:151] Setting up conv4_1
+I0808 03:06:23.517688  2843 net.cpp:158] Top shape: 64 512 28 28 (25690112)
+I0808 03:06:23.517720  2843 layer_factory.hpp:74] Creating layer relu4_1
+I0808 03:06:23.517732  2843 net.cpp:91] Creating Layer relu4_1
+I0808 03:06:23.517737  2843 net.cpp:452] relu4_1 <- conv4_1
+I0808 03:06:23.517745  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.517755  2843 net.cpp:397] relu4_1 -> conv4_1 (in-place)
+I0808 03:06:23.517763  2843 net.cpp:151] Setting up relu4_1
+I0808 03:06:23.517834  2843 net.cpp:158] Top shape: 64 512 28 28 (25690112)
+I0808 03:06:23.517840  2843 layer_factory.hpp:74] Creating layer conv4_2
+I0808 03:06:23.517848  2843 net.cpp:91] Creating Layer conv4_2
+I0808 03:06:23.517853  2843 net.cpp:452] conv4_2 <- conv4_1
+I0808 03:06:23.517856  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.517863  2843 net.cpp:408] conv4_2 -> conv4_2
+I0808 03:06:23.517870  2843 net.cpp:151] Setting up conv4_2
+I0808 03:06:23.534577  2843 net.cpp:158] Top shape: 64 512 28 28 (25690112)
+I0808 03:06:23.534612  2843 layer_factory.hpp:74] Creating layer relu4_2
+I0808 03:06:23.534629  2843 net.cpp:91] Creating Layer relu4_2
+I0808 03:06:23.534636  2843 net.cpp:452] relu4_2 <- conv4_2
+I0808 03:06:23.534643  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.534649  2843 net.cpp:397] relu4_2 -> conv4_2 (in-place)
+I0808 03:06:23.534657  2843 net.cpp:151] Setting up relu4_2
+I0808 03:06:23.534735  2843 net.cpp:158] Top shape: 64 512 28 28 (25690112)
+I0808 03:06:23.534744  2843 layer_factory.hpp:74] Creating layer conv4_3
+I0808 03:06:23.534755  2843 net.cpp:91] Creating Layer conv4_3
+I0808 03:06:23.534759  2843 net.cpp:452] conv4_3 <- conv4_2
+I0808 03:06:23.534792  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.534802  2843 net.cpp:408] conv4_3 -> conv4_3
+I0808 03:06:23.534811  2843 net.cpp:151] Setting up conv4_3
+I0808 03:06:23.551936  2843 net.cpp:158] Top shape: 64 512 28 28 (25690112)
+I0808 03:06:23.551966  2843 layer_factory.hpp:74] Creating layer relu4_3
+I0808 03:06:23.551978  2843 net.cpp:91] Creating Layer relu4_3
+I0808 03:06:23.551983  2843 net.cpp:452] relu4_3 <- conv4_3
+I0808 03:06:23.551991  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.551998  2843 net.cpp:397] relu4_3 -> conv4_3 (in-place)
+I0808 03:06:23.552007  2843 net.cpp:151] Setting up relu4_3
+I0808 03:06:23.552207  2843 net.cpp:158] Top shape: 64 512 28 28 (25690112)
+I0808 03:06:23.552217  2843 layer_factory.hpp:74] Creating layer pool4
+I0808 03:06:23.552225  2843 net.cpp:91] Creating Layer pool4
+I0808 03:06:23.552229  2843 net.cpp:452] pool4 <- conv4_3
+I0808 03:06:23.552234  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.552239  2843 net.cpp:408] pool4 -> pool4
+I0808 03:06:23.552247  2843 net.cpp:151] Setting up pool4
+I0808 03:06:23.552317  2843 net.cpp:158] Top shape: 64 512 14 14 (6422528)
+I0808 03:06:23.552325  2843 layer_factory.hpp:74] Creating layer conv5_1
+I0808 03:06:23.552333  2843 net.cpp:91] Creating Layer conv5_1
+I0808 03:06:23.552337  2843 net.cpp:452] conv5_1 <- pool4
+I0808 03:06:23.552341  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.552348  2843 net.cpp:408] conv5_1 -> conv5_1
+I0808 03:06:23.552359  2843 net.cpp:151] Setting up conv5_1
+I0808 03:06:23.569005  2843 net.cpp:158] Top shape: 64 512 14 14 (6422528)
+I0808 03:06:23.569032  2843 layer_factory.hpp:74] Creating layer relu5_1
+I0808 03:06:23.569043  2843 net.cpp:91] Creating Layer relu5_1
+I0808 03:06:23.569049  2843 net.cpp:452] relu5_1 <- conv5_1
+I0808 03:06:23.569056  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.569061  2843 net.cpp:397] relu5_1 -> conv5_1 (in-place)
+I0808 03:06:23.569069  2843 net.cpp:151] Setting up relu5_1
+I0808 03:06:23.569134  2843 net.cpp:158] Top shape: 64 512 14 14 (6422528)
+I0808 03:06:23.569140  2843 layer_factory.hpp:74] Creating layer conv5_2
+I0808 03:06:23.569149  2843 net.cpp:91] Creating Layer conv5_2
+I0808 03:06:23.569152  2843 net.cpp:452] conv5_2 <- conv5_1
+I0808 03:06:23.569157  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.569164  2843 net.cpp:408] conv5_2 -> conv5_2
+I0808 03:06:23.569172  2843 net.cpp:151] Setting up conv5_2
+I0808 03:06:23.586297  2843 net.cpp:158] Top shape: 64 512 14 14 (6422528)
+I0808 03:06:23.586323  2843 layer_factory.hpp:74] Creating layer relu5_2
+I0808 03:06:23.586335  2843 net.cpp:91] Creating Layer relu5_2
+I0808 03:06:23.586341  2843 net.cpp:452] relu5_2 <- conv5_2
+I0808 03:06:23.586347  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.586354  2843 net.cpp:397] relu5_2 -> conv5_2 (in-place)
+I0808 03:06:23.586362  2843 net.cpp:151] Setting up relu5_2
+I0808 03:06:23.586434  2843 net.cpp:158] Top shape: 64 512 14 14 (6422528)
+I0808 03:06:23.586441  2843 layer_factory.hpp:74] Creating layer conv5_3
+I0808 03:06:23.586452  2843 net.cpp:91] Creating Layer conv5_3
+I0808 03:06:23.586457  2843 net.cpp:452] conv5_3 <- conv5_2
+I0808 03:06:23.586462  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.586469  2843 net.cpp:408] conv5_3 -> conv5_3
+I0808 03:06:23.586477  2843 net.cpp:151] Setting up conv5_3
+I0808 03:06:23.603031  2843 net.cpp:158] Top shape: 64 512 14 14 (6422528)
+I0808 03:06:23.603068  2843 layer_factory.hpp:74] Creating layer relu5_3
+I0808 03:06:23.603080  2843 net.cpp:91] Creating Layer relu5_3
+I0808 03:06:23.603086  2843 net.cpp:452] relu5_3 <- conv5_3
+I0808 03:06:23.603093  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.603098  2843 net.cpp:397] relu5_3 -> conv5_3 (in-place)
+I0808 03:06:23.603138  2843 net.cpp:151] Setting up relu5_3
+I0808 03:06:23.603360  2843 net.cpp:158] Top shape: 64 512 14 14 (6422528)
+I0808 03:06:23.603371  2843 layer_factory.hpp:74] Creating layer pool5
+I0808 03:06:23.603382  2843 net.cpp:91] Creating Layer pool5
+I0808 03:06:23.603386  2843 net.cpp:452] pool5 <- conv5_3
+I0808 03:06:23.603392  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:23.603397  2843 net.cpp:408] pool5 -> pool5_local
+I0808 03:06:23.603405  2843 net.cpp:151] Setting up pool5
+I0808 03:06:23.603483  2843 net.cpp:158] Top shape: 64 512 7 7 (1605632)
+I0808 03:06:23.603492  2843 layer_factory.hpp:74] Creating layer gather
+I0808 03:06:23.603514  2843 net.cpp:91] Creating Layer gather
+I0808 03:06:23.603519  2843 net.cpp:452] gather <- pool5_local
+I0808 03:06:23.603525  2843 net.cpp:452] gather <- label_local
+I0808 03:06:23.603533  2843 net.cpp:408] gather -> pool5
+I0808 03:06:23.603540  2843 net.cpp:408] gather -> label
+I0808 03:06:23.603546  2843 net.cpp:151] Setting up gather
+I0808 03:06:23.603554  2843 net.cpp:158] Top shape: 128 512 7 7 (3211264)
+I0808 03:06:23.603559  2843 net.cpp:158] Top shape: 128 1 1 1 (128)
+I0808 03:06:23.603561  2843 layer_factory.hpp:74] Creating layer fc6
+I0808 03:06:23.603569  2843 net.cpp:91] Creating Layer fc6
+I0808 03:06:23.603572  2843 net.cpp:452] fc6 <- pool5
+I0808 03:06:23.603576  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:23.603584  2843 net.cpp:408] fc6 -> fc6
+I0808 03:06:23.603591  2843 net.cpp:151] Setting up fc6
+I0808 03:06:24.279625  2843 net.cpp:158] Top shape: 128 4096 (524288)
+I0808 03:06:24.279713  2843 layer_factory.hpp:74] Creating layer relu6
+I0808 03:06:24.279728  2843 net.cpp:91] Creating Layer relu6
+I0808 03:06:24.279736  2843 net.cpp:452] relu6 <- fc6
+I0808 03:06:24.279742  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:24.279747  2843 net.cpp:397] relu6 -> fc6 (in-place)
+I0808 03:06:24.279755  2843 net.cpp:151] Setting up relu6
+I0808 03:06:24.279872  2843 net.cpp:158] Top shape: 128 4096 (524288)
+I0808 03:06:24.279883  2843 layer_factory.hpp:74] Creating layer drop6
+I0808 03:06:24.279891  2843 net.cpp:91] Creating Layer drop6
+I0808 03:06:24.279896  2843 net.cpp:452] drop6 <- fc6
+I0808 03:06:24.279901  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:24.279906  2843 net.cpp:397] drop6 -> fc6 (in-place)
+I0808 03:06:24.279916  2843 net.cpp:151] Setting up drop6
+I0808 03:06:24.279924  2843 net.cpp:158] Top shape: 128 4096 (524288)
+I0808 03:06:24.279928  2843 layer_factory.hpp:74] Creating layer fc7
+I0808 03:06:24.279939  2843 net.cpp:91] Creating Layer fc7
+I0808 03:06:24.279943  2843 net.cpp:452] fc7 <- fc6
+I0808 03:06:24.279948  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:24.279955  2843 net.cpp:408] fc7 -> fc7
+I0808 03:06:24.279963  2843 net.cpp:151] Setting up fc7
+I0808 03:06:24.437885  2843 net.cpp:158] Top shape: 128 4096 (524288)
+I0808 03:06:24.437913  2843 layer_factory.hpp:74] Creating layer relu7
+I0808 03:06:24.437926  2843 net.cpp:91] Creating Layer relu7
+I0808 03:06:24.437932  2843 net.cpp:452] relu7 <- fc7
+I0808 03:06:24.437938  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:24.437945  2843 net.cpp:397] relu7 -> fc7 (in-place)
+I0808 03:06:24.437953  2843 net.cpp:151] Setting up relu7
+I0808 03:06:24.438068  2843 net.cpp:158] Top shape: 128 4096 (524288)
+I0808 03:06:24.438076  2843 layer_factory.hpp:74] Creating layer drop7
+I0808 03:06:24.438084  2843 net.cpp:91] Creating Layer drop7
+I0808 03:06:24.438088  2843 net.cpp:452] drop7 <- fc7
+I0808 03:06:24.438093  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:24.438098  2843 net.cpp:397] drop7 -> fc7 (in-place)
+I0808 03:06:24.438104  2843 net.cpp:151] Setting up drop7
+I0808 03:06:24.438112  2843 net.cpp:158] Top shape: 128 4096 (524288)
+I0808 03:06:24.438117  2843 layer_factory.hpp:74] Creating layer fc8-1
+I0808 03:06:24.438127  2843 net.cpp:91] Creating Layer fc8-1
+I0808 03:06:24.438163  2843 net.cpp:452] fc8-1 <- fc7
+I0808 03:06:24.438169  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:24.438177  2843 net.cpp:408] fc8-1 -> fc8-1
+I0808 03:06:24.438185  2843 net.cpp:151] Setting up fc8-1
+I0808 03:06:24.452513  2843 net.cpp:158] Top shape: 128 101 (12928)
+I0808 03:06:24.452540  2843 layer_factory.hpp:74] Creating layer loss
+I0808 03:06:24.452554  2843 net.cpp:91] Creating Layer loss
+I0808 03:06:24.452559  2843 net.cpp:452] loss <- fc8-1
+I0808 03:06:24.452566  2843 net.cpp:452] loss <- label
+I0808 03:06:24.452571  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:24.452577  2843 net.cpp:408] loss -> (automatic)
+I0808 03:06:24.452584  2843 net.cpp:151] Setting up loss
+I0808 03:06:24.452592  2843 layer_factory.hpp:74] Creating layer loss
+I0808 03:06:24.452950  2843 net.cpp:158] Top shape: (1)
+I0808 03:06:24.452960  2843 net.cpp:160]     with loss weight 1
+I0808 03:06:24.452980  2843 net.cpp:232] loss needs backward computation.
+I0808 03:06:24.452986  2843 net.cpp:232] fc8-1 needs backward computation.
+I0808 03:06:24.452989  2843 net.cpp:232] drop7 needs backward computation.
+I0808 03:06:24.452993  2843 net.cpp:232] relu7 needs backward computation.
+I0808 03:06:24.452997  2843 net.cpp:232] fc7 needs backward computation.
+I0808 03:06:24.453001  2843 net.cpp:232] drop6 needs backward computation.
+I0808 03:06:24.453006  2843 net.cpp:232] relu6 needs backward computation.
+I0808 03:06:24.453009  2843 net.cpp:232] fc6 needs backward computation.
+I0808 03:06:24.453013  2843 net.cpp:232] gather needs backward computation.
+I0808 03:06:24.453018  2843 net.cpp:232] pool5 needs backward computation.
+I0808 03:06:24.453023  2843 net.cpp:232] relu5_3 needs backward computation.
+I0808 03:06:24.453027  2843 net.cpp:232] conv5_3 needs backward computation.
+I0808 03:06:24.453032  2843 net.cpp:232] relu5_2 needs backward computation.
+I0808 03:06:24.453035  2843 net.cpp:232] conv5_2 needs backward computation.
+I0808 03:06:24.453039  2843 net.cpp:232] relu5_1 needs backward computation.
+I0808 03:06:24.453043  2843 net.cpp:232] conv5_1 needs backward computation.
+I0808 03:06:24.453047  2843 net.cpp:232] pool4 needs backward computation.
+I0808 03:06:24.453052  2843 net.cpp:232] relu4_3 needs backward computation.
+I0808 03:06:24.453055  2843 net.cpp:232] conv4_3 needs backward computation.
+I0808 03:06:24.453058  2843 net.cpp:232] relu4_2 needs backward computation.
+I0808 03:06:24.453063  2843 net.cpp:232] conv4_2 needs backward computation.
+I0808 03:06:24.453065  2843 net.cpp:232] relu4_1 needs backward computation.
+I0808 03:06:24.453069  2843 net.cpp:232] conv4_1 needs backward computation.
+I0808 03:06:24.453073  2843 net.cpp:232] pool3 needs backward computation.
+I0808 03:06:24.453076  2843 net.cpp:232] relu3_3 needs backward computation.
+I0808 03:06:24.453080  2843 net.cpp:232] conv3_3 needs backward computation.
+I0808 03:06:24.453083  2843 net.cpp:232] relu3_2 needs backward computation.
+I0808 03:06:24.453088  2843 net.cpp:232] conv3_2 needs backward computation.
+I0808 03:06:24.453090  2843 net.cpp:232] relu3_1 needs backward computation.
+I0808 03:06:24.453094  2843 net.cpp:232] conv3_1 needs backward computation.
+I0808 03:06:24.453097  2843 net.cpp:232] pool2 needs backward computation.
+I0808 03:06:24.453101  2843 net.cpp:232] relu2_2 needs backward computation.
+I0808 03:06:24.453104  2843 net.cpp:232] conv2_2 needs backward computation.
+I0808 03:06:24.453109  2843 net.cpp:232] relu2_1 needs backward computation.
+I0808 03:06:24.453111  2843 net.cpp:232] conv2_1 needs backward computation.
+I0808 03:06:24.453116  2843 net.cpp:232] pool1 needs backward computation.
+I0808 03:06:24.453120  2843 net.cpp:232] relu1_2 needs backward computation.
+I0808 03:06:24.453124  2843 net.cpp:232] conv1_2 needs backward computation.
+I0808 03:06:24.453127  2843 net.cpp:232] relu1_1 needs backward computation.
+I0808 03:06:24.453130  2843 net.cpp:232] conv1_1 needs backward computation.
+I0808 03:06:24.453135  2843 net.cpp:234] data does not need backward computation.
+I0808 03:06:24.453192  2843 net.cpp:524] Collecting Learning Rate and Weight Decay.
+I0808 03:06:24.453204  2843 net.cpp:287] Network initialization done.
+I0808 03:06:24.453208  2843 net.cpp:288] Memory required for data: 7610486020
+I0808 03:06:24.454648  2843 solver.cpp:154] Creating test net (#0) specified by net file: ../models/two-streams/vgg_16_flow_train_val_fast.prototxt
+I0808 03:06:24.454721  2843 net.cpp:327] The NetState phase (1) differed from the phase (0) specified by a rule in layer data
+I0808 03:06:24.454762  2843 net.cpp:327] The NetState phase (1) differed from the phase (0) specified by a rule in layer loss
+I0808 03:06:24.455102  2843 net.cpp:42] Initializing net from parameters: 
+name: "CUHK_Action_TemporalNet"
+state {
+  phase: TEST
+}
+layer {
+  name: "data"
+  type: "VideoData"
+  top: "data"
+  top: "label_local"
+  include {
+    phase: TEST
+  }
+  transform_param {
+    mirror: false
+    crop_size: 224
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    mean_value: 128
+    fix_crop: true
+    is_flow: true
+  }
+  video_data_param {
+    source: "/home/jiri/Lake/HAR/datasets/UCF-101/val-2-rnd.txt"
+    batch_size: 5
+    new_length: 10
+    num_segments: 1
+    modality: FLOW
+  }
+}
+layer {
+  name: "conv1_1"
+  type: "Convolution"
+  bottom: "data"
+  top: "conv1_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 64
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu1_1"
+  type: "ReLU"
+  bottom: "conv1_1"
+  top: "conv1_1"
+}
+layer {
+  name: "conv1_2"
+  type: "Convolution"
+  bottom: "conv1_1"
+  top: "conv1_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 64
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu1_2"
+  type: "ReLU"
+  bottom: "conv1_2"
+  top: "conv1_2"
+}
+layer {
+  name: "pool1"
+  type: "Pooling"
+  bottom: "conv1_2"
+  top: "pool1"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv2_1"
+  type: "Convolution"
+  bottom: "pool1"
+  top: "conv2_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 128
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu2_1"
+  type: "ReLU"
+  bottom: "conv2_1"
+  top: "conv2_1"
+}
+layer {
+  name: "conv2_2"
+  type: "Convolution"
+  bottom: "conv2_1"
+  top: "conv2_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 128
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu2_2"
+  type: "ReLU"
+  bottom: "conv2_2"
+  top: "conv2_2"
+}
+layer {
+  name: "pool2"
+  type: "Pooling"
+  bottom: "conv2_2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv3_1"
+  type: "Convolution"
+  bottom: "pool2"
+  top: "conv3_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 256
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu3_1"
+  type: "ReLU"
+  bottom: "conv3_1"
+  top: "conv3_1"
+}
+layer {
+  name: "conv3_2"
+  type: "Convolution"
+  bottom: "conv3_1"
+  top: "conv3_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 256
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu3_2"
+  type: "ReLU"
+  bottom: "conv3_2"
+  top: "conv3_2"
+}
+layer {
+  name: "conv3_3"
+  type: "Convolution"
+  bottom: "conv3_2"
+  top: "conv3_3"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 256
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu3_3"
+  type: "ReLU"
+  bottom: "conv3_3"
+  top: "conv3_3"
+}
+layer {
+  name: "pool3"
+  type: "Pooling"
+  bottom: "conv3_3"
+  top: "pool3"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv4_1"
+  type: "Convolution"
+  bottom: "pool3"
+  top: "conv4_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu4_1"
+  type: "ReLU"
+  bottom: "conv4_1"
+  top: "conv4_1"
+}
+layer {
+  name: "conv4_2"
+  type: "Convolution"
+  bottom: "conv4_1"
+  top: "conv4_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu4_2"
+  type: "ReLU"
+  bottom: "conv4_2"
+  top: "conv4_2"
+}
+layer {
+  name: "conv4_3"
+  type: "Convolution"
+  bottom: "conv4_2"
+  top: "conv4_3"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu4_3"
+  type: "ReLU"
+  bottom: "conv4_3"
+  top: "conv4_3"
+}
+layer {
+  name: "pool4"
+  type: "Pooling"
+  bottom: "conv4_3"
+  top: "pool4"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv5_1"
+  type: "Convolution"
+  bottom: "pool4"
+  top: "conv5_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu5_1"
+  type: "ReLU"
+  bottom: "conv5_1"
+  top: "conv5_1"
+}
+layer {
+  name: "conv5_2"
+  type: "Convolution"
+  bottom: "conv5_1"
+  top: "conv5_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu5_2"
+  type: "ReLU"
+  bottom: "conv5_2"
+  top: "conv5_2"
+}
+layer {
+  name: "conv5_3"
+  type: "Convolution"
+  bottom: "conv5_2"
+  top: "conv5_3"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu5_3"
+  type: "ReLU"
+  bottom: "conv5_3"
+  top: "conv5_3"
+}
+layer {
+  name: "pool5"
+  type: "Pooling"
+  bottom: "conv5_3"
+  top: "pool5_local"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "gather"
+  type: "Gather"
+  bottom: "pool5_local"
+  bottom: "label_local"
+  top: "pool5"
+  top: "label"
+}
+layer {
+  name: "fc6"
+  type: "InnerProduct"
+  bottom: "pool5"
+  top: "fc6"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 4096
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu6"
+  type: "ReLU"
+  bottom: "fc6"
+  top: "fc6"
+}
+layer {
+  name: "drop6"
+  type: "Dropout"
+  bottom: "fc6"
+  top: "fc6"
+  dropout_param {
+    dropout_ratio: 0.9
+  }
+}
+layer {
+  name: "fc7"
+  type: "InnerProduct"
+  bottom: "fc6"
+  top: "fc7"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 4096
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu7"
+  type: "ReLU"
+  bottom: "fc7"
+  top: "fc7"
+}
+layer {
+  name: "drop7"
+  type: "Dropout"
+  bottom: "fc7"
+  top: "fc7"
+  dropout_param {
+    dropout_ratio: 0.8
+  }
+}
+layer {
+  name: "fc8-1"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "fc8-1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 101
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "loss"
+  type: "SoftmaxWithLoss"
+  bottom: "fc8-1"
+  bottom: "label"
+  top: "loss"
+  include {
+    phase: TEST
+  }
+}
+layer {
+  name: "accuracy"
+  type: "Accuracy"
+  bottom: "fc8-1"
+  bottom: "label"
+  top: "accuracy"
+  include {
+    phase: TEST
+  }
+}
+I0808 03:06:24.455324  2843 layer_factory.hpp:74] Creating layer data
+I0808 03:06:24.455338  2843 net.cpp:91] Creating Layer data
+I0808 03:06:24.455344  2843 net.cpp:408] data -> data
+I0808 03:06:24.455353  2843 net.cpp:408] data -> label_local
+I0808 03:06:24.455361  2843 net.cpp:151] Setting up data
+I0808 03:06:24.455368  2843 video_data_layer.cpp:34] Opening file: /home/jiri/Lake/HAR/datasets/UCF-101/val-2-rnd.txt
+I0808 03:06:24.458268  2843 video_data_layer.cpp:50] A total of 3783 videos.
+I0808 03:06:24.474659  2843 video_data_layer.cpp:76] output data size: 5,20,224,224
+I0808 03:06:24.504417  2843 net.cpp:158] Top shape: 5 20 224 224 (5017600)
+I0808 03:06:24.504441  2843 net.cpp:158] Top shape: 5 1 1 1 (5)
+I0808 03:06:24.504448  2843 layer_factory.hpp:74] Creating layer conv1_1
+I0808 03:06:24.504465  2843 net.cpp:91] Creating Layer conv1_1
+I0808 03:06:24.504470  2843 net.cpp:452] conv1_1 <- data
+I0808 03:06:24.504477  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.504483  2843 net.cpp:408] conv1_1 -> conv1_1
+I0808 03:06:24.504495  2843 net.cpp:151] Setting up conv1_1
+I0808 03:06:24.505079  2843 net.cpp:158] Top shape: 5 64 224 224 (16056320)
+I0808 03:06:24.505097  2843 layer_factory.hpp:74] Creating layer relu1_1
+I0808 03:06:24.505106  2843 net.cpp:91] Creating Layer relu1_1
+I0808 03:06:24.505110  2843 net.cpp:452] relu1_1 <- conv1_1
+I0808 03:06:24.505115  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.505120  2843 net.cpp:397] relu1_1 -> conv1_1 (in-place)
+I0808 03:06:24.505126  2843 net.cpp:151] Setting up relu1_1
+I0808 03:06:24.505187  2843 net.cpp:158] Top shape: 5 64 224 224 (16056320)
+I0808 03:06:24.505194  2843 layer_factory.hpp:74] Creating layer conv1_2
+I0808 03:06:24.505203  2843 net.cpp:91] Creating Layer conv1_2
+I0808 03:06:24.505205  2843 net.cpp:452] conv1_2 <- conv1_1
+I0808 03:06:24.505209  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.505214  2843 net.cpp:408] conv1_2 -> conv1_2
+I0808 03:06:24.505221  2843 net.cpp:151] Setting up conv1_2
+I0808 03:06:24.505858  2843 net.cpp:158] Top shape: 5 64 224 224 (16056320)
+I0808 03:06:24.505877  2843 layer_factory.hpp:74] Creating layer relu1_2
+I0808 03:06:24.505885  2843 net.cpp:91] Creating Layer relu1_2
+I0808 03:06:24.505889  2843 net.cpp:452] relu1_2 <- conv1_2
+I0808 03:06:24.505894  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.505898  2843 net.cpp:397] relu1_2 -> conv1_2 (in-place)
+I0808 03:06:24.505904  2843 net.cpp:151] Setting up relu1_2
+I0808 03:06:24.505967  2843 net.cpp:158] Top shape: 5 64 224 224 (16056320)
+I0808 03:06:24.505975  2843 layer_factory.hpp:74] Creating layer pool1
+I0808 03:06:24.505981  2843 net.cpp:91] Creating Layer pool1
+I0808 03:06:24.505985  2843 net.cpp:452] pool1 <- conv1_2
+I0808 03:06:24.505990  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.505993  2843 net.cpp:408] pool1 -> pool1
+I0808 03:06:24.506000  2843 net.cpp:151] Setting up pool1
+I0808 03:06:24.506062  2843 net.cpp:158] Top shape: 5 64 112 112 (4014080)
+I0808 03:06:24.506069  2843 layer_factory.hpp:74] Creating layer conv2_1
+I0808 03:06:24.506077  2843 net.cpp:91] Creating Layer conv2_1
+I0808 03:06:24.506079  2843 net.cpp:452] conv2_1 <- pool1
+I0808 03:06:24.506113  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.506119  2843 net.cpp:408] conv2_1 -> conv2_1
+I0808 03:06:24.506125  2843 net.cpp:151] Setting up conv2_1
+I0808 03:06:24.506997  2843 net.cpp:158] Top shape: 5 128 112 112 (8028160)
+I0808 03:06:24.507014  2843 layer_factory.hpp:74] Creating layer relu2_1
+I0808 03:06:24.507021  2843 net.cpp:91] Creating Layer relu2_1
+I0808 03:06:24.507026  2843 net.cpp:452] relu2_1 <- conv2_1
+I0808 03:06:24.507031  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.507036  2843 net.cpp:397] relu2_1 -> conv2_1 (in-place)
+I0808 03:06:24.507042  2843 net.cpp:151] Setting up relu2_1
+I0808 03:06:24.507254  2843 net.cpp:158] Top shape: 5 128 112 112 (8028160)
+I0808 03:06:24.507263  2843 layer_factory.hpp:74] Creating layer conv2_2
+I0808 03:06:24.507273  2843 net.cpp:91] Creating Layer conv2_2
+I0808 03:06:24.507277  2843 net.cpp:452] conv2_2 <- conv2_1
+I0808 03:06:24.507282  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.507287  2843 net.cpp:408] conv2_2 -> conv2_2
+I0808 03:06:24.507294  2843 net.cpp:151] Setting up conv2_2
+I0808 03:06:24.508608  2843 net.cpp:158] Top shape: 5 128 112 112 (8028160)
+I0808 03:06:24.508622  2843 layer_factory.hpp:74] Creating layer relu2_2
+I0808 03:06:24.508630  2843 net.cpp:91] Creating Layer relu2_2
+I0808 03:06:24.508635  2843 net.cpp:452] relu2_2 <- conv2_2
+I0808 03:06:24.508640  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.508644  2843 net.cpp:397] relu2_2 -> conv2_2 (in-place)
+I0808 03:06:24.508649  2843 net.cpp:151] Setting up relu2_2
+I0808 03:06:24.508709  2843 net.cpp:158] Top shape: 5 128 112 112 (8028160)
+I0808 03:06:24.508716  2843 layer_factory.hpp:74] Creating layer pool2
+I0808 03:06:24.508723  2843 net.cpp:91] Creating Layer pool2
+I0808 03:06:24.508726  2843 net.cpp:452] pool2 <- conv2_2
+I0808 03:06:24.508731  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.508735  2843 net.cpp:408] pool2 -> pool2
+I0808 03:06:24.508741  2843 net.cpp:151] Setting up pool2
+I0808 03:06:24.508810  2843 net.cpp:158] Top shape: 5 128 56 56 (2007040)
+I0808 03:06:24.508821  2843 layer_factory.hpp:74] Creating layer conv3_1
+I0808 03:06:24.508828  2843 net.cpp:91] Creating Layer conv3_1
+I0808 03:06:24.508832  2843 net.cpp:452] conv3_1 <- pool2
+I0808 03:06:24.508838  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.508843  2843 net.cpp:408] conv3_1 -> conv3_1
+I0808 03:06:24.508853  2843 net.cpp:151] Setting up conv3_1
+I0808 03:06:24.511152  2843 net.cpp:158] Top shape: 5 256 56 56 (4014080)
+I0808 03:06:24.511169  2843 layer_factory.hpp:74] Creating layer relu3_1
+I0808 03:06:24.511176  2843 net.cpp:91] Creating Layer relu3_1
+I0808 03:06:24.511180  2843 net.cpp:452] relu3_1 <- conv3_1
+I0808 03:06:24.511185  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.511190  2843 net.cpp:397] relu3_1 -> conv3_1 (in-place)
+I0808 03:06:24.511198  2843 net.cpp:151] Setting up relu3_1
+I0808 03:06:24.511407  2843 net.cpp:158] Top shape: 5 256 56 56 (4014080)
+I0808 03:06:24.511417  2843 layer_factory.hpp:74] Creating layer conv3_2
+I0808 03:06:24.511426  2843 net.cpp:91] Creating Layer conv3_2
+I0808 03:06:24.511430  2843 net.cpp:452] conv3_2 <- conv3_1
+I0808 03:06:24.511435  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.511441  2843 net.cpp:408] conv3_2 -> conv3_2
+I0808 03:06:24.511448  2843 net.cpp:151] Setting up conv3_2
+I0808 03:06:24.516165  2843 net.cpp:158] Top shape: 5 256 56 56 (4014080)
+I0808 03:06:24.516190  2843 layer_factory.hpp:74] Creating layer relu3_2
+I0808 03:06:24.516201  2843 net.cpp:91] Creating Layer relu3_2
+I0808 03:06:24.516207  2843 net.cpp:452] relu3_2 <- conv3_2
+I0808 03:06:24.516216  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.516221  2843 net.cpp:397] relu3_2 -> conv3_2 (in-place)
+I0808 03:06:24.516258  2843 net.cpp:151] Setting up relu3_2
+I0808 03:06:24.516340  2843 net.cpp:158] Top shape: 5 256 56 56 (4014080)
+I0808 03:06:24.516348  2843 layer_factory.hpp:74] Creating layer conv3_3
+I0808 03:06:24.516357  2843 net.cpp:91] Creating Layer conv3_3
+I0808 03:06:24.516361  2843 net.cpp:452] conv3_3 <- conv3_2
+I0808 03:06:24.516367  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.516374  2843 net.cpp:408] conv3_3 -> conv3_3
+I0808 03:06:24.516382  2843 net.cpp:151] Setting up conv3_3
+I0808 03:06:24.522320  2843 net.cpp:158] Top shape: 5 256 56 56 (4014080)
+I0808 03:06:24.522343  2843 layer_factory.hpp:74] Creating layer relu3_3
+I0808 03:06:24.522358  2843 net.cpp:91] Creating Layer relu3_3
+I0808 03:06:24.522364  2843 net.cpp:452] relu3_3 <- conv3_3
+I0808 03:06:24.522371  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.522375  2843 net.cpp:397] relu3_3 -> conv3_3 (in-place)
+I0808 03:06:24.522383  2843 net.cpp:151] Setting up relu3_3
+I0808 03:06:24.523222  2843 net.cpp:158] Top shape: 5 256 56 56 (4014080)
+I0808 03:06:24.523236  2843 layer_factory.hpp:74] Creating layer pool3
+I0808 03:06:24.523247  2843 net.cpp:91] Creating Layer pool3
+I0808 03:06:24.523252  2843 net.cpp:452] pool3 <- conv3_3
+I0808 03:06:24.523257  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.523267  2843 net.cpp:408] pool3 -> pool3
+I0808 03:06:24.523274  2843 net.cpp:151] Setting up pool3
+I0808 03:06:24.523355  2843 net.cpp:158] Top shape: 5 256 28 28 (1003520)
+I0808 03:06:24.523363  2843 layer_factory.hpp:74] Creating layer conv4_1
+I0808 03:06:24.523375  2843 net.cpp:91] Creating Layer conv4_1
+I0808 03:06:24.523378  2843 net.cpp:452] conv4_1 <- pool3
+I0808 03:06:24.523383  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.523389  2843 net.cpp:408] conv4_1 -> conv4_1
+I0808 03:06:24.523397  2843 net.cpp:151] Setting up conv4_1
+I0808 03:06:24.547829  2843 net.cpp:158] Top shape: 5 512 28 28 (2007040)
+I0808 03:06:24.547855  2843 layer_factory.hpp:74] Creating layer relu4_1
+I0808 03:06:24.547868  2843 net.cpp:91] Creating Layer relu4_1
+I0808 03:06:24.547874  2843 net.cpp:452] relu4_1 <- conv4_1
+I0808 03:06:24.547881  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.547886  2843 net.cpp:397] relu4_1 -> conv4_1 (in-place)
+I0808 03:06:24.547894  2843 net.cpp:151] Setting up relu4_1
+I0808 03:06:24.548108  2843 net.cpp:158] Top shape: 5 512 28 28 (2007040)
+I0808 03:06:24.548120  2843 layer_factory.hpp:74] Creating layer conv4_2
+I0808 03:06:24.548130  2843 net.cpp:91] Creating Layer conv4_2
+I0808 03:06:24.548133  2843 net.cpp:452] conv4_2 <- conv4_1
+I0808 03:06:24.548140  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.548146  2843 net.cpp:408] conv4_2 -> conv4_2
+I0808 03:06:24.548156  2843 net.cpp:151] Setting up conv4_2
+I0808 03:06:24.577906  2843 net.cpp:158] Top shape: 5 512 28 28 (2007040)
+I0808 03:06:24.577939  2843 layer_factory.hpp:74] Creating layer relu4_2
+I0808 03:06:24.577952  2843 net.cpp:91] Creating Layer relu4_2
+I0808 03:06:24.577957  2843 net.cpp:452] relu4_2 <- conv4_2
+I0808 03:06:24.577965  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.577970  2843 net.cpp:397] relu4_2 -> conv4_2 (in-place)
+I0808 03:06:24.577977  2843 net.cpp:151] Setting up relu4_2
+I0808 03:06:24.578052  2843 net.cpp:158] Top shape: 5 512 28 28 (2007040)
+I0808 03:06:24.578059  2843 layer_factory.hpp:74] Creating layer conv4_3
+I0808 03:06:24.578070  2843 net.cpp:91] Creating Layer conv4_3
+I0808 03:06:24.578074  2843 net.cpp:452] conv4_3 <- conv4_2
+I0808 03:06:24.578078  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.578084  2843 net.cpp:408] conv4_3 -> conv4_3
+I0808 03:06:24.578093  2843 net.cpp:151] Setting up conv4_3
+I0808 03:06:24.655689  2843 net.cpp:158] Top shape: 5 512 28 28 (2007040)
+I0808 03:06:24.655719  2843 layer_factory.hpp:74] Creating layer relu4_3
+I0808 03:06:24.655760  2843 net.cpp:91] Creating Layer relu4_3
+I0808 03:06:24.655767  2843 net.cpp:452] relu4_3 <- conv4_3
+I0808 03:06:24.655774  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.655779  2843 net.cpp:397] relu4_3 -> conv4_3 (in-place)
+I0808 03:06:24.655788  2843 net.cpp:151] Setting up relu4_3
+I0808 03:06:24.655861  2843 net.cpp:158] Top shape: 5 512 28 28 (2007040)
+I0808 03:06:24.655870  2843 layer_factory.hpp:74] Creating layer pool4
+I0808 03:06:24.655879  2843 net.cpp:91] Creating Layer pool4
+I0808 03:06:24.655884  2843 net.cpp:452] pool4 <- conv4_3
+I0808 03:06:24.655889  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.655895  2843 net.cpp:408] pool4 -> pool4
+I0808 03:06:24.655902  2843 net.cpp:151] Setting up pool4
+I0808 03:06:24.655977  2843 net.cpp:158] Top shape: 5 512 14 14 (501760)
+I0808 03:06:24.655985  2843 layer_factory.hpp:74] Creating layer conv5_1
+I0808 03:06:24.655994  2843 net.cpp:91] Creating Layer conv5_1
+I0808 03:06:24.655998  2843 net.cpp:452] conv5_1 <- pool4
+I0808 03:06:24.656003  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.656009  2843 net.cpp:408] conv5_1 -> conv5_1
+I0808 03:06:24.656020  2843 net.cpp:151] Setting up conv5_1
+I0808 03:06:24.695669  2843 net.cpp:158] Top shape: 5 512 14 14 (501760)
+I0808 03:06:24.695698  2843 layer_factory.hpp:74] Creating layer relu5_1
+I0808 03:06:24.695713  2843 net.cpp:91] Creating Layer relu5_1
+I0808 03:06:24.695719  2843 net.cpp:452] relu5_1 <- conv5_1
+I0808 03:06:24.695726  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.695731  2843 net.cpp:397] relu5_1 -> conv5_1 (in-place)
+I0808 03:06:24.695740  2843 net.cpp:151] Setting up relu5_1
+I0808 03:06:24.695941  2843 net.cpp:158] Top shape: 5 512 14 14 (501760)
+I0808 03:06:24.695951  2843 layer_factory.hpp:74] Creating layer conv5_2
+I0808 03:06:24.695962  2843 net.cpp:91] Creating Layer conv5_2
+I0808 03:06:24.695966  2843 net.cpp:452] conv5_2 <- conv5_1
+I0808 03:06:24.695971  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.695977  2843 net.cpp:408] conv5_2 -> conv5_2
+I0808 03:06:24.695984  2843 net.cpp:151] Setting up conv5_2
+I0808 03:06:24.729111  2843 net.cpp:158] Top shape: 5 512 14 14 (501760)
+I0808 03:06:24.729188  2843 layer_factory.hpp:74] Creating layer relu5_2
+I0808 03:06:24.729223  2843 net.cpp:91] Creating Layer relu5_2
+I0808 03:06:24.729231  2843 net.cpp:452] relu5_2 <- conv5_2
+I0808 03:06:24.729238  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.729244  2843 net.cpp:397] relu5_2 -> conv5_2 (in-place)
+I0808 03:06:24.729251  2843 net.cpp:151] Setting up relu5_2
+I0808 03:06:24.729326  2843 net.cpp:158] Top shape: 5 512 14 14 (501760)
+I0808 03:06:24.729334  2843 layer_factory.hpp:74] Creating layer conv5_3
+I0808 03:06:24.729344  2843 net.cpp:91] Creating Layer conv5_3
+I0808 03:06:24.729348  2843 net.cpp:452] conv5_3 <- conv5_2
+I0808 03:06:24.729352  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.729359  2843 net.cpp:408] conv5_3 -> conv5_3
+I0808 03:06:24.729367  2843 net.cpp:151] Setting up conv5_3
+I0808 03:06:24.759639  2843 net.cpp:158] Top shape: 5 512 14 14 (501760)
+I0808 03:06:24.759666  2843 layer_factory.hpp:74] Creating layer relu5_3
+I0808 03:06:24.759678  2843 net.cpp:91] Creating Layer relu5_3
+I0808 03:06:24.759685  2843 net.cpp:452] relu5_3 <- conv5_3
+I0808 03:06:24.759691  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.759699  2843 net.cpp:397] relu5_3 -> conv5_3 (in-place)
+I0808 03:06:24.759708  2843 net.cpp:151] Setting up relu5_3
+I0808 03:06:24.759786  2843 net.cpp:158] Top shape: 5 512 14 14 (501760)
+I0808 03:06:24.759795  2843 layer_factory.hpp:74] Creating layer pool5
+I0808 03:06:24.759804  2843 net.cpp:91] Creating Layer pool5
+I0808 03:06:24.759807  2843 net.cpp:452] pool5 <- conv5_3
+I0808 03:06:24.759811  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 1
+I0808 03:06:24.759846  2843 net.cpp:408] pool5 -> pool5_local
+I0808 03:06:24.759855  2843 net.cpp:151] Setting up pool5
+I0808 03:06:24.759922  2843 net.cpp:158] Top shape: 5 512 7 7 (125440)
+I0808 03:06:24.759970  2843 layer_factory.hpp:74] Creating layer gather
+I0808 03:06:24.760004  2843 net.cpp:91] Creating Layer gather
+I0808 03:06:24.760027  2843 net.cpp:452] gather <- pool5_local
+I0808 03:06:24.760049  2843 net.cpp:452] gather <- label_local
+I0808 03:06:24.760074  2843 net.cpp:408] gather -> pool5
+I0808 03:06:24.760103  2843 net.cpp:408] gather -> label
+I0808 03:06:24.760128  2843 net.cpp:151] Setting up gather
+I0808 03:06:24.760156  2843 net.cpp:158] Top shape: 10 512 7 7 (250880)
+I0808 03:06:24.760179  2843 net.cpp:158] Top shape: 10 1 1 1 (10)
+I0808 03:06:24.760201  2843 layer_factory.hpp:74] Creating layer label_gather_1_split
+I0808 03:06:24.760226  2843 net.cpp:91] Creating Layer label_gather_1_split
+I0808 03:06:24.760246  2843 net.cpp:452] label_gather_1_split <- label
+I0808 03:06:24.760273  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:24.760296  2843 net.cpp:408] label_gather_1_split -> label_gather_1_split_0
+I0808 03:06:24.760323  2843 net.cpp:408] label_gather_1_split -> label_gather_1_split_1
+I0808 03:06:24.760347  2843 net.cpp:151] Setting up label_gather_1_split
+I0808 03:06:24.760371  2843 net.cpp:158] Top shape: 10 1 1 1 (10)
+I0808 03:06:24.760393  2843 net.cpp:158] Top shape: 10 1 1 1 (10)
+I0808 03:06:24.760413  2843 layer_factory.hpp:74] Creating layer fc6
+I0808 03:06:24.760439  2843 net.cpp:91] Creating Layer fc6
+I0808 03:06:24.760460  2843 net.cpp:452] fc6 <- pool5
+I0808 03:06:24.760480  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:24.760504  2843 net.cpp:408] fc6 -> fc6
+I0808 03:06:24.760530  2843 net.cpp:151] Setting up fc6
+I0808 03:06:26.077808  2843 net.cpp:158] Top shape: 10 4096 (40960)
+I0808 03:06:26.077833  2843 layer_factory.hpp:74] Creating layer relu6
+I0808 03:06:26.077846  2843 net.cpp:91] Creating Layer relu6
+I0808 03:06:26.077850  2843 net.cpp:452] relu6 <- fc6
+I0808 03:06:26.077857  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:26.077862  2843 net.cpp:397] relu6 -> fc6 (in-place)
+I0808 03:06:26.077870  2843 net.cpp:151] Setting up relu6
+I0808 03:06:26.078173  2843 net.cpp:158] Top shape: 10 4096 (40960)
+I0808 03:06:26.078182  2843 layer_factory.hpp:74] Creating layer drop6
+I0808 03:06:26.078192  2843 net.cpp:91] Creating Layer drop6
+I0808 03:06:26.078197  2843 net.cpp:452] drop6 <- fc6
+I0808 03:06:26.078202  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:26.078208  2843 net.cpp:397] drop6 -> fc6 (in-place)
+I0808 03:06:26.078217  2843 net.cpp:151] Setting up drop6
+I0808 03:06:26.078225  2843 net.cpp:158] Top shape: 10 4096 (40960)
+I0808 03:06:26.078229  2843 layer_factory.hpp:74] Creating layer fc7
+I0808 03:06:26.078238  2843 net.cpp:91] Creating Layer fc7
+I0808 03:06:26.078243  2843 net.cpp:452] fc7 <- fc6
+I0808 03:06:26.078248  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:26.078256  2843 net.cpp:408] fc7 -> fc7
+I0808 03:06:26.078265  2843 net.cpp:151] Setting up fc7
+I0808 03:06:26.279667  2843 net.cpp:158] Top shape: 10 4096 (40960)
+I0808 03:06:26.279692  2843 layer_factory.hpp:74] Creating layer relu7
+I0808 03:06:26.279707  2843 net.cpp:91] Creating Layer relu7
+I0808 03:06:26.279712  2843 net.cpp:452] relu7 <- fc7
+I0808 03:06:26.279719  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:26.279726  2843 net.cpp:397] relu7 -> fc7 (in-place)
+I0808 03:06:26.279732  2843 net.cpp:151] Setting up relu7
+I0808 03:06:26.279829  2843 net.cpp:158] Top shape: 10 4096 (40960)
+I0808 03:06:26.279836  2843 layer_factory.hpp:74] Creating layer drop7
+I0808 03:06:26.279846  2843 net.cpp:91] Creating Layer drop7
+I0808 03:06:26.279851  2843 net.cpp:452] drop7 <- fc7
+I0808 03:06:26.279856  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:26.279893  2843 net.cpp:397] drop7 -> fc7 (in-place)
+I0808 03:06:26.279901  2843 net.cpp:151] Setting up drop7
+I0808 03:06:26.279911  2843 net.cpp:158] Top shape: 10 4096 (40960)
+I0808 03:06:26.279916  2843 layer_factory.hpp:74] Creating layer fc8-1
+I0808 03:06:26.279927  2843 net.cpp:91] Creating Layer fc8-1
+I0808 03:06:26.279932  2843 net.cpp:452] fc8-1 <- fc7
+I0808 03:06:26.279937  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:26.279942  2843 net.cpp:408] fc8-1 -> fc8-1
+I0808 03:06:26.279952  2843 net.cpp:151] Setting up fc8-1
+I0808 03:06:26.288995  2843 net.cpp:158] Top shape: 10 101 (1010)
+I0808 03:06:26.289016  2843 layer_factory.hpp:74] Creating layer fc8-1_fc8-1_0_split
+I0808 03:06:26.289024  2843 net.cpp:91] Creating Layer fc8-1_fc8-1_0_split
+I0808 03:06:26.289028  2843 net.cpp:452] fc8-1_fc8-1_0_split <- fc8-1
+I0808 03:06:26.289034  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:26.289041  2843 net.cpp:408] fc8-1_fc8-1_0_split -> fc8-1_fc8-1_0_split_0
+I0808 03:06:26.289052  2843 net.cpp:408] fc8-1_fc8-1_0_split -> fc8-1_fc8-1_0_split_1
+I0808 03:06:26.289059  2843 net.cpp:151] Setting up fc8-1_fc8-1_0_split
+I0808 03:06:26.289067  2843 net.cpp:158] Top shape: 10 101 (1010)
+I0808 03:06:26.289072  2843 net.cpp:158] Top shape: 10 101 (1010)
+I0808 03:06:26.289077  2843 layer_factory.hpp:74] Creating layer loss
+I0808 03:06:26.289084  2843 net.cpp:91] Creating Layer loss
+I0808 03:06:26.289088  2843 net.cpp:452] loss <- fc8-1_fc8-1_0_split_0
+I0808 03:06:26.289094  2843 net.cpp:452] loss <- label_gather_1_split_0
+I0808 03:06:26.289099  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:26.289105  2843 net.cpp:408] loss -> loss
+I0808 03:06:26.289113  2843 net.cpp:151] Setting up loss
+I0808 03:06:26.289121  2843 layer_factory.hpp:74] Creating layer loss
+I0808 03:06:26.289227  2843 net.cpp:158] Top shape: (1)
+I0808 03:06:26.289234  2843 net.cpp:160]     with loss weight 1
+I0808 03:06:26.289250  2843 layer_factory.hpp:74] Creating layer accuracy
+I0808 03:06:26.289259  2843 net.cpp:91] Creating Layer accuracy
+I0808 03:06:26.289263  2843 net.cpp:452] accuracy <- fc8-1_fc8-1_0_split_1
+I0808 03:06:26.289269  2843 net.cpp:452] accuracy <- label_gather_1_split_1
+I0808 03:06:26.289274  2843 net.cpp:119] This layer is inheriting previous layer's sync mode: 0
+I0808 03:06:26.289281  2843 net.cpp:408] accuracy -> accuracy
+I0808 03:06:26.289289  2843 net.cpp:151] Setting up accuracy
+I0808 03:06:26.289296  2843 net.cpp:158] Top shape: (1)
+I0808 03:06:26.289301  2843 net.cpp:234] accuracy does not need backward computation.
+I0808 03:06:26.289306  2843 net.cpp:232] loss needs backward computation.
+I0808 03:06:26.289311  2843 net.cpp:232] fc8-1_fc8-1_0_split needs backward computation.
+I0808 03:06:26.289315  2843 net.cpp:232] fc8-1 needs backward computation.
+I0808 03:06:26.289319  2843 net.cpp:232] drop7 needs backward computation.
+I0808 03:06:26.289324  2843 net.cpp:232] relu7 needs backward computation.
+I0808 03:06:26.289333  2843 net.cpp:232] fc7 needs backward computation.
+I0808 03:06:26.289337  2843 net.cpp:232] drop6 needs backward computation.
+I0808 03:06:26.289341  2843 net.cpp:232] relu6 needs backward computation.
+I0808 03:06:26.289345  2843 net.cpp:232] fc6 needs backward computation.
+I0808 03:06:26.289350  2843 net.cpp:234] label_gather_1_split does not need backward computation.
+I0808 03:06:26.289355  2843 net.cpp:232] gather needs backward computation.
+I0808 03:06:26.289361  2843 net.cpp:232] pool5 needs backward computation.
+I0808 03:06:26.289365  2843 net.cpp:232] relu5_3 needs backward computation.
+I0808 03:06:26.289368  2843 net.cpp:232] conv5_3 needs backward computation.
+I0808 03:06:26.289373  2843 net.cpp:232] relu5_2 needs backward computation.
+I0808 03:06:26.289377  2843 net.cpp:232] conv5_2 needs backward computation.
+I0808 03:06:26.289381  2843 net.cpp:232] relu5_1 needs backward computation.
+I0808 03:06:26.289386  2843 net.cpp:232] conv5_1 needs backward computation.
+I0808 03:06:26.289422  2843 net.cpp:232] pool4 needs backward computation.
+I0808 03:06:26.289427  2843 net.cpp:232] relu4_3 needs backward computation.
+I0808 03:06:26.289430  2843 net.cpp:232] conv4_3 needs backward computation.
+I0808 03:06:26.289435  2843 net.cpp:232] relu4_2 needs backward computation.
+I0808 03:06:26.289439  2843 net.cpp:232] conv4_2 needs backward computation.
+I0808 03:06:26.289443  2843 net.cpp:232] relu4_1 needs backward computation.
+I0808 03:06:26.289448  2843 net.cpp:232] conv4_1 needs backward computation.
+I0808 03:06:26.289453  2843 net.cpp:232] pool3 needs backward computation.
+I0808 03:06:26.289456  2843 net.cpp:232] relu3_3 needs backward computation.
+I0808 03:06:26.289460  2843 net.cpp:232] conv3_3 needs backward computation.
+I0808 03:06:26.289464  2843 net.cpp:232] relu3_2 needs backward computation.
+I0808 03:06:26.289469  2843 net.cpp:232] conv3_2 needs backward computation.
+I0808 03:06:26.289472  2843 net.cpp:232] relu3_1 needs backward computation.
+I0808 03:06:26.289476  2843 net.cpp:232] conv3_1 needs backward computation.
+I0808 03:06:26.289480  2843 net.cpp:232] pool2 needs backward computation.
+I0808 03:06:26.289485  2843 net.cpp:232] relu2_2 needs backward computation.
+I0808 03:06:26.289489  2843 net.cpp:232] conv2_2 needs backward computation.
+I0808 03:06:26.289494  2843 net.cpp:232] relu2_1 needs backward computation.
+I0808 03:06:26.289497  2843 net.cpp:232] conv2_1 needs backward computation.
+I0808 03:06:26.289501  2843 net.cpp:232] pool1 needs backward computation.
+I0808 03:06:26.289505  2843 net.cpp:232] relu1_2 needs backward computation.
+I0808 03:06:26.289510  2843 net.cpp:232] conv1_2 needs backward computation.
+I0808 03:06:26.289513  2843 net.cpp:232] relu1_1 needs backward computation.
+I0808 03:06:26.289517  2843 net.cpp:232] conv1_1 needs backward computation.
+I0808 03:06:26.289522  2843 net.cpp:234] data does not need backward computation.
+I0808 03:06:26.289526  2843 net.cpp:275] This network produces output accuracy
+I0808 03:06:26.289530  2843 net.cpp:275] This network produces output loss
+I0808 03:06:26.289561  2843 net.cpp:524] Collecting Learning Rate and Weight Decay.
+I0808 03:06:26.289574  2843 net.cpp:287] Network initialization done.
+I0808 03:06:26.289580  2843 net.cpp:288] Memory required for data: 594577388
+I0808 03:06:26.289729  2843 solver.cpp:42] Solver scaffolding done.
+I0808 03:06:26.289796  2843 caffe.cpp:86] Finetuning from vgg_16_action_flow_pretrain.caffemodel
+I0808 03:06:30.120703  2843 solver.cpp:368] Solving CUHK_Action_TemporalNet
+I0808 03:06:30.120723  2843 solver.cpp:369] Learning Rate Policy: step
+I0808 03:06:30.404064  2843 solver.cpp:432] Iteration 0, Testing net (#0)
+I0808 03:06:45.359171  2843 solver.cpp:488]     Test net output #0: accuracy = 0.0120588
+I0808 03:06:45.359220  2843 solver.cpp:488]     Test net output #1: loss = 4.61445 (* 1 = 4.61445 loss)
+I0808 03:06:50.769645  2843 solver.cpp:232] Iteration 0, loss = 4.64922
+I0808 03:06:50.769680  2843 solver.cpp:631] Iteration 0, lr = 0.001
+I0808 03:08:38.357383  2843 solver.cpp:232] Iteration 20, loss = 4.56492
+I0808 03:08:38.357465  2843 solver.cpp:631] Iteration 20, lr = 0.001
+I0808 03:10:26.255511  2843 solver.cpp:232] Iteration 40, loss = 4.60386
+I0808 03:10:26.255605  2843 solver.cpp:631] Iteration 40, lr = 0.001
+I0808 03:12:14.043658  2843 solver.cpp:232] Iteration 60, loss = 6.00175
+I0808 03:12:14.043747  2843 solver.cpp:631] Iteration 60, lr = 0.001
+I0808 03:14:01.853991  2843 solver.cpp:232] Iteration 80, loss = 4.76147
+I0808 03:14:01.854101  2843 solver.cpp:631] Iteration 80, lr = 0.001
+I0808 03:15:49.484277  2843 solver.cpp:232] Iteration 100, loss = 4.63199
+I0808 03:15:49.484355  2843 solver.cpp:631] Iteration 100, lr = 0.001
+I0808 03:17:36.779793  2843 solver.cpp:232] Iteration 120, loss = 4.98114
+I0808 03:17:36.779885  2843 solver.cpp:631] Iteration 120, lr = 0.001
+I0808 03:19:23.970790  2843 solver.cpp:232] Iteration 140, loss = 5.05267
+I0808 03:19:23.970897  2843 solver.cpp:631] Iteration 140, lr = 0.001
+I0808 03:21:11.430490  2843 solver.cpp:232] Iteration 160, loss = 10.511
+I0808 03:21:11.430606  2843 solver.cpp:631] Iteration 160, lr = 0.001
+I0808 03:22:58.934603  2843 solver.cpp:232] Iteration 180, loss = 8.59726
+I0808 03:22:58.934705  2843 solver.cpp:631] Iteration 180, lr = 0.001
+I0808 03:24:46.314513  2843 solver.cpp:232] Iteration 200, loss = 5.9087
+I0808 03:24:46.314622  2843 solver.cpp:631] Iteration 200, lr = 0.001
+I0808 03:26:33.554466  2843 solver.cpp:232] Iteration 220, loss = 7.10195
+I0808 03:26:33.554566  2843 solver.cpp:631] Iteration 220, lr = 0.001
+I0808 03:28:20.875140  2843 solver.cpp:232] Iteration 240, loss = 5.29393
+I0808 03:28:20.875246  2843 solver.cpp:631] Iteration 240, lr = 0.001
+I0808 03:30:08.028872  2843 solver.cpp:232] Iteration 260, loss = 6.74122
+I0808 03:30:08.028980  2843 solver.cpp:631] Iteration 260, lr = 0.001
+I0808 03:31:55.223448  2843 solver.cpp:232] Iteration 280, loss = 6.26097
+I0808 03:31:55.223527  2843 solver.cpp:631] Iteration 280, lr = 0.001
+I0808 03:33:42.363700  2843 solver.cpp:232] Iteration 300, loss = 5.96446
+I0808 03:33:42.363787  2843 solver.cpp:631] Iteration 300, lr = 0.001
+I0808 03:35:29.499449  2843 solver.cpp:232] Iteration 320, loss = 6.24196
+I0808 03:35:29.499555  2843 solver.cpp:631] Iteration 320, lr = 0.001
+I0808 03:37:16.614410  2843 solver.cpp:232] Iteration 340, loss = 5.73224
+I0808 03:37:16.614495  2843 solver.cpp:631] Iteration 340, lr = 0.001
+I0808 03:39:03.827188  2843 solver.cpp:232] Iteration 360, loss = 6.22467
+I0808 03:39:03.827291  2843 solver.cpp:631] Iteration 360, lr = 0.001
+I0808 03:40:51.048303  2843 solver.cpp:232] Iteration 380, loss = 6.17093
+I0808 03:40:51.048406  2843 solver.cpp:631] Iteration 380, lr = 0.001
+I0808 03:42:38.291982  2843 solver.cpp:232] Iteration 400, loss = 6.182
+I0808 03:42:38.292078  2843 solver.cpp:631] Iteration 400, lr = 0.001
+I0808 03:44:25.583194  2843 solver.cpp:232] Iteration 420, loss = 5.71177
+I0808 03:44:25.583343  2843 solver.cpp:631] Iteration 420, lr = 0.001
+I0808 03:46:12.842258  2843 solver.cpp:232] Iteration 440, loss = 6.26428
+I0808 03:46:12.842331  2843 solver.cpp:631] Iteration 440, lr = 0.001
+I0808 03:48:00.123730  2843 solver.cpp:232] Iteration 460, loss = 5.4953
+I0808 03:48:00.123816  2843 solver.cpp:631] Iteration 460, lr = 0.001
+I0808 03:49:47.163110  2843 solver.cpp:232] Iteration 480, loss = 6.30098
+I0808 03:49:47.163236  2843 solver.cpp:631] Iteration 480, lr = 0.001
+I0808 03:51:29.108338  2843 solver.cpp:432] Iteration 500, Testing net (#0)
+I0808 03:51:46.003224  2843 solver.cpp:488]     Test net output #0: accuracy = 0.0111765
+I0808 03:51:46.003260  2843 solver.cpp:488]     Test net output #1: loss = 4.61837 (* 1 = 4.61837 loss)
+I0808 03:51:51.296726  2843 solver.cpp:232] Iteration 500, loss = 4.69837
+I0808 03:51:51.296761  2843 solver.cpp:631] Iteration 500, lr = 0.001
+I0808 03:53:38.576179  2843 solver.cpp:232] Iteration 520, loss = 4.68734
+I0808 03:53:38.576253  2843 solver.cpp:631] Iteration 520, lr = 0.001
+I0808 03:55:25.631988  2843 solver.cpp:232] Iteration 540, loss = 4.65553
+I0808 03:55:25.632107  2843 solver.cpp:631] Iteration 540, lr = 0.001
+I0808 03:57:12.876405  2843 solver.cpp:232] Iteration 560, loss = 4.64974
+I0808 03:57:12.876510  2843 solver.cpp:631] Iteration 560, lr = 0.001
+I0808 03:58:59.901459  2843 solver.cpp:232] Iteration 580, loss = 4.66702
+I0808 03:58:59.901590  2843 solver.cpp:631] Iteration 580, lr = 0.001
+I0808 04:00:46.780200  2843 solver.cpp:232] Iteration 600, loss = 4.63936
+I0808 04:00:46.780380  2843 solver.cpp:631] Iteration 600, lr = 0.001
+I0808 04:02:33.977895  2843 solver.cpp:232] Iteration 620, loss = 4.67226
+I0808 04:02:33.977988  2843 solver.cpp:631] Iteration 620, lr = 0.001
+I0808 04:04:21.316989  2843 solver.cpp:232] Iteration 640, loss = 4.69429
+I0808 04:04:21.317107  2843 solver.cpp:631] Iteration 640, lr = 0.001
+I0808 04:06:08.653882  2843 solver.cpp:232] Iteration 660, loss = 4.68745
+I0808 04:06:08.654047  2843 solver.cpp:631] Iteration 660, lr = 0.001
+I0808 04:07:55.936843  2843 solver.cpp:232] Iteration 680, loss = 4.68993
+I0808 04:07:55.936967  2843 solver.cpp:631] Iteration 680, lr = 0.001
+I0808 04:09:43.084672  2843 solver.cpp:232] Iteration 700, loss = 4.6733
+I0808 04:09:43.084779  2843 solver.cpp:631] Iteration 700, lr = 0.001
+I0808 04:11:30.031529  2843 solver.cpp:232] Iteration 720, loss = 4.69629
+I0808 04:11:30.031641  2843 solver.cpp:631] Iteration 720, lr = 0.001
+I0808 04:13:17.229701  2843 solver.cpp:232] Iteration 740, loss = 4.62423
+I0808 04:13:17.229809  2843 solver.cpp:631] Iteration 740, lr = 0.001
+I0808 04:15:04.377722  2843 solver.cpp:232] Iteration 760, loss = 4.66965
+I0808 04:15:04.377841  2843 solver.cpp:631] Iteration 760, lr = 0.001
+I0808 04:16:51.580564  2843 solver.cpp:232] Iteration 780, loss = 4.67846
+I0808 04:16:51.580664  2843 solver.cpp:631] Iteration 780, lr = 0.001
+I0808 04:18:38.721835  2843 solver.cpp:232] Iteration 800, loss = 4.68808
+I0808 04:18:38.721938  2843 solver.cpp:631] Iteration 800, lr = 0.001
+I0808 04:20:25.735658  2843 solver.cpp:232] Iteration 820, loss = 4.65189
+I0808 04:20:25.735733  2843 solver.cpp:631] Iteration 820, lr = 0.001
+I0808 04:22:12.854475  2843 solver.cpp:232] Iteration 840, loss = 4.68476
+I0808 04:22:12.854564  2843 solver.cpp:631] Iteration 840, lr = 0.001
+I0808 04:23:59.790802  2843 solver.cpp:232] Iteration 860, loss = 4.68463
+I0808 04:23:59.790889  2843 solver.cpp:631] Iteration 860, lr = 0.001
+I0808 04:25:47.002921  2843 solver.cpp:232] Iteration 880, loss = 4.6732
+I0808 04:25:47.003008  2843 solver.cpp:631] Iteration 880, lr = 0.001
+I0808 04:27:34.060554  2843 solver.cpp:232] Iteration 900, loss = 4.67696
+I0808 04:27:34.060647  2843 solver.cpp:631] Iteration 900, lr = 0.001
+I0808 04:29:21.119750  2843 solver.cpp:232] Iteration 920, loss = 4.68886
+I0808 04:29:21.119846  2843 solver.cpp:631] Iteration 920, lr = 0.001
+I0808 04:31:08.351908  2843 solver.cpp:232] Iteration 940, loss = 4.66782
+I0808 04:31:08.352007  2843 solver.cpp:631] Iteration 940, lr = 0.001
+I0808 04:32:55.477519  2843 solver.cpp:232] Iteration 960, loss = 4.69285
+I0808 04:32:55.477581  2843 solver.cpp:631] Iteration 960, lr = 0.001
+I0808 04:34:42.574071  2843 solver.cpp:232] Iteration 980, loss = 4.68567
+I0808 04:34:42.574170  2843 solver.cpp:631] Iteration 980, lr = 0.001
+I0808 04:36:26.032867  2843 solver.cpp:506] Snapshotting to two-streams_16_split1_flow-2_iter_1000.caffemodel
+I0808 04:36:30.081584  2843 solver.cpp:514] Snapshotting solver state to two-streams_16_split1_flow-2_iter_1000.solverstate
+I0808 04:36:32.320704  2843 solver.cpp:432] Iteration 1000, Testing net (#0)
+I0808 04:36:49.069231  2843 solver.cpp:488]     Test net output #0: accuracy = 0.0158824
+I0808 04:36:49.069265  2843 solver.cpp:488]     Test net output #1: loss = 4.61614 (* 1 = 4.61614 loss)
+I0808 04:36:54.374941  2843 solver.cpp:232] Iteration 1000, loss = 4.669
+I0808 04:36:54.374975  2843 solver.cpp:631] Iteration 1000, lr = 0.001
+I0808 04:38:41.507246  2843 solver.cpp:232] Iteration 1020, loss = 4.67007
+I0808 04:38:41.507351  2843 solver.cpp:631] Iteration 1020, lr = 0.001
+I0808 04:40:28.575489  2843 solver.cpp:232] Iteration 1040, loss = 4.68363
+I0808 04:40:28.575588  2843 solver.cpp:631] Iteration 1040, lr = 0.001
+I0808 04:42:15.803203  2843 solver.cpp:232] Iteration 1060, loss = 4.64183
+I0808 04:42:15.803314  2843 solver.cpp:631] Iteration 1060, lr = 0.001
+I0808 04:44:03.060590  2843 solver.cpp:232] Iteration 1080, loss = 4.693
+I0808 04:44:03.060724  2843 solver.cpp:631] Iteration 1080, lr = 0.001
+I0808 04:45:50.145772  2843 solver.cpp:232] Iteration 1100, loss = 4.68312
+I0808 04:45:50.145875  2843 solver.cpp:631] Iteration 1100, lr = 0.001
+I0808 04:47:37.137518  2843 solver.cpp:232] Iteration 1120, loss = 4.64592
+I0808 04:47:37.137595  2843 solver.cpp:631] Iteration 1120, lr = 0.001
+I0808 04:49:24.200709  2843 solver.cpp:232] Iteration 1140, loss = 4.66739
+I0808 04:49:24.200788  2843 solver.cpp:631] Iteration 1140, lr = 0.001
+I0808 04:51:11.317997  2843 solver.cpp:232] Iteration 1160, loss = 4.66479
+I0808 04:51:11.318114  2843 solver.cpp:631] Iteration 1160, lr = 0.001
+I0808 04:52:58.598523  2843 solver.cpp:232] Iteration 1180, loss = 4.68664
+I0808 04:52:58.598618  2843 solver.cpp:631] Iteration 1180, lr = 0.001
+I0808 04:54:46.043915  2843 solver.cpp:232] Iteration 1200, loss = 4.69438
+I0808 04:54:46.043998  2843 solver.cpp:631] Iteration 1200, lr = 0.001
+I0808 04:56:33.353971  2843 solver.cpp:232] Iteration 1220, loss = 4.67552
+I0808 04:56:33.354070  2843 solver.cpp:631] Iteration 1220, lr = 0.001
+I0808 04:58:20.491654  2843 solver.cpp:232] Iteration 1240, loss = 4.67264
+I0808 04:58:20.491740  2843 solver.cpp:631] Iteration 1240, lr = 0.001
+I0808 05:00:07.584413  2843 solver.cpp:232] Iteration 1260, loss = 4.69891
+I0808 05:00:07.584517  2843 solver.cpp:631] Iteration 1260, lr = 0.001
+I0808 05:01:54.741336  2843 solver.cpp:232] Iteration 1280, loss = 4.66678
+I0808 05:01:54.741453  2843 solver.cpp:631] Iteration 1280, lr = 0.001
+I0808 05:03:41.912137  2843 solver.cpp:232] Iteration 1300, loss = 4.69023
+I0808 05:03:41.912233  2843 solver.cpp:631] Iteration 1300, lr = 0.001
+I0808 05:05:29.221927  2843 solver.cpp:232] Iteration 1320, loss = 4.6839
+I0808 05:05:29.222019  2843 solver.cpp:631] Iteration 1320, lr = 0.001
+I0808 05:07:16.331740  2843 solver.cpp:232] Iteration 1340, loss = 4.66361
+I0808 05:07:16.331818  2843 solver.cpp:631] Iteration 1340, lr = 0.001
+I0808 05:09:03.575777  2843 solver.cpp:232] Iteration 1360, loss = 4.67803
+I0808 05:09:03.575852  2843 solver.cpp:631] Iteration 1360, lr = 0.001
+I0808 05:10:50.810410  2843 solver.cpp:232] Iteration 1380, loss = 4.63645
+I0808 05:10:50.810514  2843 solver.cpp:631] Iteration 1380, lr = 0.001
+I0808 05:12:37.859201  2843 solver.cpp:232] Iteration 1400, loss = 4.65383
+I0808 05:12:37.859285  2843 solver.cpp:631] Iteration 1400, lr = 0.001
+I0808 05:14:25.132705  2843 solver.cpp:232] Iteration 1420, loss = 4.67809
+I0808 05:14:25.132803  2843 solver.cpp:631] Iteration 1420, lr = 0.001
+I0808 05:16:12.244215  2843 solver.cpp:232] Iteration 1440, loss = 4.67524
+I0808 05:16:12.244318  2843 solver.cpp:631] Iteration 1440, lr = 0.001
+I0808 05:17:59.277416  2843 solver.cpp:232] Iteration 1460, loss = 4.68704
+I0808 05:17:59.277521  2843 solver.cpp:631] Iteration 1460, lr = 0.001
+I0808 05:19:46.541959  2843 solver.cpp:232] Iteration 1480, loss = 4.67105
+I0808 05:19:46.542022  2843 solver.cpp:631] Iteration 1480, lr = 0.001
+I0808 05:21:28.508930  2843 solver.cpp:432] Iteration 1500, Testing net (#0)
+I0808 05:21:44.546365  2843 solver.cpp:488]     Test net output #0: accuracy = 0.0111765
+I0808 05:21:44.546394  2843 solver.cpp:488]     Test net output #1: loss = 4.61065 (* 1 = 4.61065 loss)
+I0808 05:21:49.855525  2843 solver.cpp:232] Iteration 1500, loss = 4.69335
+I0808 05:21:49.855556  2843 solver.cpp:631] Iteration 1500, lr = 0.001
+I0808 05:23:36.911800  2843 solver.cpp:232] Iteration 1520, loss = 4.68856
+I0808 05:23:36.911892  2843 solver.cpp:631] Iteration 1520, lr = 0.001
+I0808 05:25:24.102025  2843 solver.cpp:232] Iteration 1540, loss = 4.6661
+I0808 05:25:24.102119  2843 solver.cpp:631] Iteration 1540, lr = 0.001
+I0808 05:27:11.233077  2843 solver.cpp:232] Iteration 1560, loss = 4.66439
+I0808 05:27:11.233162  2843 solver.cpp:631] Iteration 1560, lr = 0.001
+I0808 05:28:58.383729  2843 solver.cpp:232] Iteration 1580, loss = 4.7061
+I0808 05:28:58.383817  2843 solver.cpp:631] Iteration 1580, lr = 0.001
+I0808 05:30:45.562598  2843 solver.cpp:232] Iteration 1600, loss = 4.66469
+I0808 05:30:45.562680  2843 solver.cpp:631] Iteration 1600, lr = 0.001
+I0808 05:32:32.801110  2843 solver.cpp:232] Iteration 1620, loss = 4.66929
+I0808 05:32:32.801216  2843 solver.cpp:631] Iteration 1620, lr = 0.001
+I0808 05:34:19.974083  2843 solver.cpp:232] Iteration 1640, loss = 4.68183
+I0808 05:34:19.974170  2843 solver.cpp:631] Iteration 1640, lr = 0.001
+I0808 05:36:07.172029  2843 solver.cpp:232] Iteration 1660, loss = 4.68798
+I0808 05:36:07.172122  2843 solver.cpp:631] Iteration 1660, lr = 0.001
+I0808 05:37:54.373980  2843 solver.cpp:232] Iteration 1680, loss = 4.68499
+I0808 05:37:54.374110  2843 solver.cpp:631] Iteration 1680, lr = 0.001
+I0808 05:39:41.561099  2843 solver.cpp:232] Iteration 1700, loss = 4.63993
+I0808 05:39:41.561209  2843 solver.cpp:631] Iteration 1700, lr = 0.001
+I0808 05:41:28.671610  2843 solver.cpp:232] Iteration 1720, loss = 4.70881
+I0808 05:41:28.671699  2843 solver.cpp:631] Iteration 1720, lr = 0.001
+I0808 05:43:15.659225  2843 solver.cpp:232] Iteration 1740, loss = 4.67036
+I0808 05:43:15.659332  2843 solver.cpp:631] Iteration 1740, lr = 0.001
+I0808 05:45:02.743325  2843 solver.cpp:232] Iteration 1760, loss = 4.65347
+I0808 05:45:02.743420  2843 solver.cpp:631] Iteration 1760, lr = 0.001
+I0808 05:46:49.849650  2843 solver.cpp:232] Iteration 1780, loss = 4.65335
+I0808 05:46:49.849756  2843 solver.cpp:631] Iteration 1780, lr = 0.001
+I0808 05:48:36.959341  2843 solver.cpp:232] Iteration 1800, loss = 4.68149
+I0808 05:48:36.959440  2843 solver.cpp:631] Iteration 1800, lr = 0.001
+I0808 05:50:24.227509  2843 solver.cpp:232] Iteration 1820, loss = 4.68205
+I0808 05:50:24.227620  2843 solver.cpp:631] Iteration 1820, lr = 0.001
+I0808 05:52:11.304365  2843 solver.cpp:232] Iteration 1840, loss = 4.6637
+I0808 05:52:11.304641  2843 solver.cpp:631] Iteration 1840, lr = 0.001
+I0808 05:53:58.618878  2843 solver.cpp:232] Iteration 1860, loss = 4.68032
+I0808 05:53:58.618968  2843 solver.cpp:631] Iteration 1860, lr = 0.001
+I0808 05:55:45.896687  2843 solver.cpp:232] Iteration 1880, loss = 4.66174
+I0808 05:55:45.896790  2843 solver.cpp:631] Iteration 1880, lr = 0.001
+I0808 05:57:33.193099  2843 solver.cpp:232] Iteration 1900, loss = 4.65923
+I0808 05:57:33.193224  2843 solver.cpp:631] Iteration 1900, lr = 0.001
+I0808 05:59:20.383327  2843 solver.cpp:232] Iteration 1920, loss = 4.69714
+I0808 05:59:20.383427  2843 solver.cpp:631] Iteration 1920, lr = 0.001
+I0808 06:01:07.474079  2843 solver.cpp:232] Iteration 1940, loss = 4.67316
+I0808 06:01:07.474169  2843 solver.cpp:631] Iteration 1940, lr = 0.001
+I0808 06:02:54.483999  2843 solver.cpp:232] Iteration 1960, loss = 4.67098
+I0808 06:02:54.484092  2843 solver.cpp:631] Iteration 1960, lr = 0.001
+I0808 06:04:41.756023  2843 solver.cpp:232] Iteration 1980, loss = 4.69247
+I0808 06:04:41.756113  2843 solver.cpp:631] Iteration 1980, lr = 0.001
+I0808 06:06:24.983855  2843 solver.cpp:506] Snapshotting to two-streams_16_split1_flow-2_iter_2000.caffemodel
+I0808 06:06:29.344043  2843 solver.cpp:514] Snapshotting solver state to two-streams_16_split1_flow-2_iter_2000.solverstate
+I0808 06:06:31.500411  2843 solver.cpp:432] Iteration 2000, Testing net (#0)
+I0808 06:06:48.231438  2843 solver.cpp:488]     Test net output #0: accuracy = 0.0147059
+I0808 06:06:48.231472  2843 solver.cpp:488]     Test net output #1: loss = 4.61652 (* 1 = 4.61652 loss)
+I0808 06:06:53.564388  2843 solver.cpp:232] Iteration 2000, loss = 4.66935
+I0808 06:06:53.564417  2843 solver.cpp:631] Iteration 2000, lr = 0.001
+I0808 06:08:40.699026  2843 solver.cpp:232] Iteration 2020, loss = 4.67302
+I0808 06:08:40.699141  2843 solver.cpp:631] Iteration 2020, lr = 0.001
+I0808 06:10:27.978888  2843 solver.cpp:232] Iteration 2040, loss = 4.65576
+I0808 06:10:27.979001  2843 solver.cpp:631] Iteration 2040, lr = 0.001
+I0808 06:12:15.088640  2843 solver.cpp:232] Iteration 2060, loss = 4.66044
+I0808 06:12:15.088716  2843 solver.cpp:631] Iteration 2060, lr = 0.001
+I0808 06:14:02.004153  2843 solver.cpp:232] Iteration 2080, loss = 4.66622
+I0808 06:14:02.004240  2843 solver.cpp:631] Iteration 2080, lr = 0.001
+I0808 06:15:49.014179  2843 solver.cpp:232] Iteration 2100, loss = 4.67543
+I0808 06:15:49.014272  2843 solver.cpp:631] Iteration 2100, lr = 0.001
+I0808 06:17:36.147828  2843 solver.cpp:232] Iteration 2120, loss = 4.68534
+I0808 06:17:36.147934  2843 solver.cpp:631] Iteration 2120, lr = 0.001
+I0808 06:19:23.191089  2843 solver.cpp:232] Iteration 2140, loss = 4.65718
+I0808 06:19:23.191189  2843 solver.cpp:631] Iteration 2140, lr = 0.001
+I0808 06:21:10.342607  2843 solver.cpp:232] Iteration 2160, loss = 4.69096
+I0808 06:21:10.342686  2843 solver.cpp:631] Iteration 2160, lr = 0.001
+I0808 06:22:57.238459  2843 solver.cpp:232] Iteration 2180, loss = 4.6956
+I0808 06:22:57.238569  2843 solver.cpp:631] Iteration 2180, lr = 0.001
+I0808 06:24:44.406179  2843 solver.cpp:232] Iteration 2200, loss = 4.67532
+I0808 06:24:44.406285  2843 solver.cpp:631] Iteration 2200, lr = 0.001
+I0808 06:26:31.479233  2843 solver.cpp:232] Iteration 2220, loss = 4.65764
+I0808 06:26:31.479303  2843 solver.cpp:631] Iteration 2220, lr = 0.001
+I0808 06:28:18.639413  2843 solver.cpp:232] Iteration 2240, loss = 4.64048
+I0808 06:28:18.639511  2843 solver.cpp:631] Iteration 2240, lr = 0.001
+I0808 06:30:05.690148  2843 solver.cpp:232] Iteration 2260, loss = 4.66919
+I0808 06:30:05.690248  2843 solver.cpp:631] Iteration 2260, lr = 0.001
+I0808 06:31:52.774627  2843 solver.cpp:232] Iteration 2280, loss = 4.66931
+I0808 06:31:52.774741  2843 solver.cpp:631] Iteration 2280, lr = 0.001
+I0808 06:33:39.860960  2843 solver.cpp:232] Iteration 2300, loss = 4.67079
+I0808 06:33:39.861047  2843 solver.cpp:631] Iteration 2300, lr = 0.001
+I0808 06:35:27.076920  2843 solver.cpp:232] Iteration 2320, loss = 4.67789
+I0808 06:35:27.077020  2843 solver.cpp:631] Iteration 2320, lr = 0.001
+I0808 06:37:14.267565  2843 solver.cpp:232] Iteration 2340, loss = 4.68628
+I0808 06:37:14.267663  2843 solver.cpp:631] Iteration 2340, lr = 0.001
+I0808 06:39:01.437499  2843 solver.cpp:232] Iteration 2360, loss = 4.66054
+I0808 06:39:01.437607  2843 solver.cpp:631] Iteration 2360, lr = 0.001
+I0808 06:40:48.410035  2843 solver.cpp:232] Iteration 2380, loss = 4.66685
+I0808 06:40:48.410099  2843 solver.cpp:631] Iteration 2380, lr = 0.001
+I0808 06:42:35.374433  2843 solver.cpp:232] Iteration 2400, loss = 4.71221
+I0808 06:42:35.374537  2843 solver.cpp:631] Iteration 2400, lr = 0.001
+I0808 06:44:22.678374  2843 solver.cpp:232] Iteration 2420, loss = 4.66776
+I0808 06:44:22.678460  2843 solver.cpp:631] Iteration 2420, lr = 0.001
+I0808 06:46:09.698453  2843 solver.cpp:232] Iteration 2440, loss = 4.69025
+I0808 06:46:09.698555  2843 solver.cpp:631] Iteration 2440, lr = 0.001
+I0808 06:47:56.830823  2843 solver.cpp:232] Iteration 2460, loss = 4.65547
+I0808 06:47:56.830899  2843 solver.cpp:631] Iteration 2460, lr = 0.001
+I0808 06:49:43.922601  2843 solver.cpp:232] Iteration 2480, loss = 4.63705
+I0808 06:49:43.922745  2843 solver.cpp:631] Iteration 2480, lr = 0.001
+I0808 06:51:25.577286  2843 solver.cpp:432] Iteration 2500, Testing net (#0)
+I0808 06:51:42.219667  2843 solver.cpp:488]     Test net output #0: accuracy = 0.0147059
+I0808 06:51:42.219763  2843 solver.cpp:488]     Test net output #1: loss = 4.61358 (* 1 = 4.61358 loss)
+I0808 06:51:47.542182  2843 solver.cpp:232] Iteration 2500, loss = 4.67066
+I0808 06:51:47.542217  2843 solver.cpp:631] Iteration 2500, lr = 0.001
+I0808 06:53:34.224524  2843 solver.cpp:232] Iteration 2520, loss = 4.68512
+I0808 06:53:34.224622  2843 solver.cpp:631] Iteration 2520, lr = 0.001
+I0808 06:55:21.443038  2843 solver.cpp:232] Iteration 2540, loss = 4.69029
+I0808 06:55:21.443145  2843 solver.cpp:631] Iteration 2540, lr = 0.001
+I0808 06:57:08.535553  2843 solver.cpp:232] Iteration 2560, loss = 4.66947
+I0808 06:57:08.535619  2843 solver.cpp:631] Iteration 2560, lr = 0.001
+I0808 06:58:55.567613  2843 solver.cpp:232] Iteration 2580, loss = 4.66652
+I0808 06:58:55.567718  2843 solver.cpp:631] Iteration 2580, lr = 0.001
+I0808 07:00:42.743083  2843 solver.cpp:232] Iteration 2600, loss = 4.70304
+I0808 07:00:42.743163  2843 solver.cpp:631] Iteration 2600, lr = 0.001
+I0808 07:02:29.839787  2843 solver.cpp:232] Iteration 2620, loss = 4.65998
+I0808 07:02:29.839867  2843 solver.cpp:631] Iteration 2620, lr = 0.001
+I0808 07:04:16.986101  2843 solver.cpp:232] Iteration 2640, loss = 4.63925
+I0808 07:04:16.986183  2843 solver.cpp:631] Iteration 2640, lr = 0.001
+I0808 07:06:04.225783  2843 solver.cpp:232] Iteration 2660, loss = 4.6559
+I0808 07:06:04.225901  2843 solver.cpp:631] Iteration 2660, lr = 0.001
+I0808 07:07:51.118959  2843 solver.cpp:232] Iteration 2680, loss = 4.65472
+I0808 07:07:51.119038  2843 solver.cpp:631] Iteration 2680, lr = 0.001
+I0808 07:09:38.115525  2843 solver.cpp:232] Iteration 2700, loss = 4.67514
+I0808 07:09:38.115671  2843 solver.cpp:631] Iteration 2700, lr = 0.001
+I0808 07:11:25.364677  2843 solver.cpp:232] Iteration 2720, loss = 4.65332
+I0808 07:11:25.364743  2843 solver.cpp:631] Iteration 2720, lr = 0.001
+I0808 07:13:12.722940  2843 solver.cpp:232] Iteration 2740, loss = 4.67602
+I0808 07:13:12.723104  2843 solver.cpp:631] Iteration 2740, lr = 0.001
+I0808 07:14:59.982306  2843 solver.cpp:232] Iteration 2760, loss = 4.65591
+I0808 07:14:59.982419  2843 solver.cpp:631] Iteration 2760, lr = 0.001
+I0808 07:16:47.089612  2843 solver.cpp:232] Iteration 2780, loss = 4.66803
+I0808 07:16:47.089704  2843 solver.cpp:631] Iteration 2780, lr = 0.001
+I0808 07:18:34.232552  2843 solver.cpp:232] Iteration 2800, loss = 4.68652
+I0808 07:18:34.232648  2843 solver.cpp:631] Iteration 2800, lr = 0.001
+I0808 07:20:21.347892  2843 solver.cpp:232] Iteration 2820, loss = 4.63656
+I0808 07:20:21.347988  2843 solver.cpp:631] Iteration 2820, lr = 0.001
+I0808 07:22:08.566906  2843 solver.cpp:232] Iteration 2840, loss = 4.68461
+I0808 07:22:08.566988  2843 solver.cpp:631] Iteration 2840, lr = 0.001
+I0808 07:23:55.767446  2843 solver.cpp:232] Iteration 2860, loss = 4.66806
+I0808 07:23:55.767554  2843 solver.cpp:631] Iteration 2860, lr = 0.001
+I0808 07:25:42.853922  2843 solver.cpp:232] Iteration 2880, loss = 4.65552
+I0808 07:25:42.854032  2843 solver.cpp:631] Iteration 2880, lr = 0.001
+I0808 07:27:29.887249  2843 solver.cpp:232] Iteration 2900, loss = 4.66117
+I0808 07:27:29.887356  2843 solver.cpp:631] Iteration 2900, lr = 0.001
+I0808 07:29:17.019243  2843 solver.cpp:232] Iteration 2920, loss = 4.67864
+I0808 07:29:17.019350  2843 solver.cpp:631] Iteration 2920, lr = 0.001
+I0808 07:31:04.112241  2843 solver.cpp:232] Iteration 2940, loss = 4.67108
+I0808 07:31:04.112324  2843 solver.cpp:631] Iteration 2940, lr = 0.001
+I0808 07:32:51.403295  2843 solver.cpp:232] Iteration 2960, loss = 4.66037
+I0808 07:32:51.403383  2843 solver.cpp:631] Iteration 2960, lr = 0.001
+I0808 07:34:38.687264  2843 solver.cpp:232] Iteration 2980, loss = 4.67247
+I0808 07:34:38.687360  2843 solver.cpp:631] Iteration 2980, lr = 0.001
+I0808 07:36:22.657212  2843 solver.cpp:506] Snapshotting to two-streams_16_split1_flow-2_iter_3000.caffemodel
+I0808 07:36:26.103546  2843 solver.cpp:514] Snapshotting solver state to two-streams_16_split1_flow-2_iter_3000.solverstate
+I0808 07:36:28.200752  2843 solver.cpp:432] Iteration 3000, Testing net (#0)
+I0808 07:36:44.941489  2843 solver.cpp:488]     Test net output #0: accuracy = 0.0111765
+I0808 07:36:44.941520  2843 solver.cpp:488]     Test net output #1: loss = 4.61348 (* 1 = 4.61348 loss)
+I0808 07:36:50.273897  2843 solver.cpp:232] Iteration 3000, loss = 4.66924
+I0808 07:36:50.273932  2843 solver.cpp:631] Iteration 3000, lr = 0.001
+I0808 07:38:37.249807  2843 solver.cpp:232] Iteration 3020, loss = 4.68024
+I0808 07:38:37.249881  2843 solver.cpp:631] Iteration 3020, lr = 0.001
+I0808 07:40:24.377409  2843 solver.cpp:232] Iteration 3040, loss = 4.66573
+I0808 07:40:24.377562  2843 solver.cpp:631] Iteration 3040, lr = 0.001
+I0808 07:42:11.564754  2843 solver.cpp:232] Iteration 3060, loss = 4.67579
+I0808 07:42:11.564826  2843 solver.cpp:631] Iteration 3060, lr = 0.001
+I0808 07:43:58.758819  2843 solver.cpp:232] Iteration 3080, loss = 4.67376
+I0808 07:43:58.758911  2843 solver.cpp:631] Iteration 3080, lr = 0.001
+I0808 07:45:45.964344  2843 solver.cpp:232] Iteration 3100, loss = 4.67737
+I0808 07:45:45.964442  2843 solver.cpp:631] Iteration 3100, lr = 0.001
+I0808 07:47:33.081987  2843 solver.cpp:232] Iteration 3120, loss = 4.66883
+I0808 07:47:33.082093  2843 solver.cpp:631] Iteration 3120, lr = 0.001
+I0808 07:49:20.051553  2843 solver.cpp:232] Iteration 3140, loss = 4.68022
+I0808 07:49:20.051672  2843 solver.cpp:631] Iteration 3140, lr = 0.001
+I0808 07:51:07.175061  2843 solver.cpp:232] Iteration 3160, loss = 4.68031
+I0808 07:51:07.175142  2843 solver.cpp:631] Iteration 3160, lr = 0.001
+I0808 07:52:54.260402  2843 solver.cpp:232] Iteration 3180, loss = 4.63509
+I0808 07:52:54.260499  2843 solver.cpp:631] Iteration 3180, lr = 0.001
+I0808 07:54:41.311241  2843 solver.cpp:232] Iteration 3200, loss = 4.69124
+I0808 07:54:41.311348  2843 solver.cpp:631] Iteration 3200, lr = 0.001
+I0808 07:56:28.535316  2843 solver.cpp:232] Iteration 3220, loss = 4.65591
+I0808 07:56:28.535410  2843 solver.cpp:631] Iteration 3220, lr = 0.001
+I0808 07:58:15.830392  2843 solver.cpp:232] Iteration 3240, loss = 4.6898
+I0808 07:58:15.830492  2843 solver.cpp:631] Iteration 3240, lr = 0.001
+I0808 08:00:03.189630  2843 solver.cpp:232] Iteration 3260, loss = 4.67499
+I0808 08:00:03.189714  2843 solver.cpp:631] Iteration 3260, lr = 0.001
+I0808 08:01:50.581266  2843 solver.cpp:232] Iteration 3280, loss = 4.63372
+I0808 08:01:50.581342  2843 solver.cpp:631] Iteration 3280, lr = 0.001
+I0808 08:03:37.781930  2843 solver.cpp:232] Iteration 3300, loss = 4.67531
+I0808 08:03:37.782006  2843 solver.cpp:631] Iteration 3300, lr = 0.001
+I0808 08:05:25.159394  2843 solver.cpp:232] Iteration 3320, loss = 4.65781
+I0808 08:05:25.159471  2843 solver.cpp:631] Iteration 3320, lr = 0.001
+I0808 08:07:12.263927  2843 solver.cpp:232] Iteration 3340, loss = 4.68673
+I0808 08:07:12.264008  2843 solver.cpp:631] Iteration 3340, lr = 0.001
+I0808 08:08:59.422015  2843 solver.cpp:232] Iteration 3360, loss = 4.65224
+I0808 08:08:59.422109  2843 solver.cpp:631] Iteration 3360, lr = 0.001
+I0808 08:10:46.567711  2843 solver.cpp:232] Iteration 3380, loss = 4.62854
+I0808 08:10:46.567785  2843 solver.cpp:631] Iteration 3380, lr = 0.001

@@ -1,0 +1,47 @@
+#!/bin/bash
+
+SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+DAR_ROOT=$(dirname $SCRIPT_DIR)
+
+#Configure
+#————————————————————
+QT_PATH=/home/jiri/Qt/5.5/gcc_64/
+QT_INST=${QT_PATH}/lib/cmake/
+
+#cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX:PATH=`pwd`/../build-fast  -D WITH_OPENCL=YES -D WITH_CUDA=ON -D WITH_CUBLAS=ON -D WITH_CUFFT=ON -D WITH_TBB=ON -D BUILD_PYTHON_SUPPORT=ON -D WITH_OPENGL=ON -D CMAKE_BUILD_TYPE=RELEASE -D WITH_QT=OFF  -D WITH_OPENMP=ON -D MATLAB_MEX_SCRIPT=x/usr/local/MATLAB/R2014a/bin/mex -DQT_QMAKE_EXECUTABLE=${QT_PATH}/bin/qmake  -D WITH_OPENNI=OFF -D PYTHON_EXECUTABLE=/usr/bin/python -D MATLAB_ROOT_DIR=x/usr/local/MATLAB/R2014a/ -D BUILD_DOCS=OFF -D BUILD_TESTS=ON -D BUILD_PERF_TESTS=ON -D BUILD_EXAMPLES=ON -D ENABLE_FAST_MATH=ON -D Qt5Concurrent_DIR=${QT_INST}/Qt5Concurrent -D Qt5Core_DIR=${QT_INST}/Qt5Core -D Qt5Gui_DIR=${QT_INST}/Qt5Gui -D Qt5Test_DIR=${QT_INST}/Qt5Test  -D Qt5W_dgets_DIR=${QT_INST}/Qt5Widgets -D Qt5OpenGL_DIR=${QT_INST}/Qt5OpenGL -D OPENCV_EXTRA_MODULES_PATH=`pwd`/../../opencv_contrib/modules/ -D CUDA_ARCH_BIN="3.0" ..
+
+
+cmake -G "Unix Makefiles" \
+-D CMAKE_INSTALL_PREFIX:PATH=`pwd`/../../../  \
+-D WITH_OPENCL=YES \
+-D WITH_CUDA=ON \
+-D WITH_CUBLAS=ON \
+-D WITH_CUFFT=ON \
+-D WITH_TBB=ON \
+-D BUILD_PYTHON_SUPPORT=ON \
+-D WITH_OPENGL=ON \
+-D CMAKE_BUILD_TYPE=RELEASE \
+-D WITH_QT=ON  \
+-D WITH_OPENMP=ON \
+-D MATLAB_ROOT_DIR=/usr/local/MATLAB/R2014a/ \
+-D MATLAB_MEX_SCRIPT=/usr/local/MATLAB/R2014a/bin/mex \
+-D QT_QMAKE_EXECUTABLE=${QT_PATH}/bin/qmake  \
+-D WITH_OPENNI=OFF \
+-D PYTHON_EXECUTABLE=/usr/bin/python \
+-D BUILD_DOCS=OFF \
+-D BUILD_TESTS=ON \
+-D BUILD_PERF_TESTS=ON \
+-D BUILD_EXAMPLES=ON \
+-D ENABLE_FAST_MATH=ON \
+-D Qt5Concurrent_DIR=${QT_INST}/Qt5Concurrent \
+-D Qt5Core_DIR=${QT_INST}/Qt5Core \
+-D Qt5Gui_DIR=${QT_INST}/Qt5Gui \
+-D Qt5Test_DIR=${QT_INST}/Qt5Test  \
+-D Qt5Widgets_DIR=${QT_INST}/Qt5Widgets \
+-D Qt5OpenGL_DIR=${QT_INST}/Qt5OpenGL \
+-D OPENCV_EXTRA_MODULES_PATH=`pwd`/../../opencv_contrib/modules/ \
+-D CUDA_ARCH_BIN="3.0" \
+..
+
+
+
