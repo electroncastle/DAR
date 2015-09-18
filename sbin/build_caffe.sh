@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 #
 #   @file    build_caffe.sh
 #   @author  Jiri Fajtl, <ok1zjf@gmail.com>
@@ -14,12 +15,17 @@
 # 
 #
 
-SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+#SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+#DAR_PATH=$(dirname $SCRIPT_DIR)
+#echo $DAR_PATH
 
-DAR_PATH=$(dirname $SCRIPT_DIR)
-echo $DAR_PATH
-
-cmake .. -DCMAKE_INSTALL_PREFIX:PATH=$DAR_PATH
+if [ "$1" == "debug" ]; then
+	echo "Building DEBUG version"
+	echo ${DAR_ROOT}
+	cmake .. -DCMAKE_INSTALL_PREFIX:PATH=${DAR_ROOT} -DCMAKE_BUILD_TYPE=debug
+else
+	cmake .. -DCMAKE_INSTALL_PREFIX:PATH=${DAR_ROOT}
+fi
 make -j 8
 make -j 8 pycaffe
 make install

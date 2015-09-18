@@ -1,38 +1,78 @@
-name: "CUHK_Action_TemporalNet"
+name: "Optical_Flow_Regression"
 layer {
-  name: "cifar"
+  name: "ofr-data"
   type: "Data"
   top: "data"
-  top: "label_local"
+  #top: "label_local"
   include {
     phase: TRAIN
   }
-  transform_param {
-    mean_file: "examples/cifar10/mean.binaryproto"
-  }
+#  transform_param {
+#    mean_file: "examples/cifar10/mean.binaryproto"
+#  }
   data_param {
-    source: "examples/cifar10/cifar10_train_lmdb"
-    batch_size: 100
+    source: "train-of-data-lmdb"
+    batch_size: 256
     backend: LMDB
   }
 }
+
 layer {
-  name: "cifar"
+  name: "ofr-labels"
+  type: "Data"
+  top: "label"
+  #top: "label_local"
+  include {
+    phase: TRAIN
+  }
+#  transform_param {
+#    mean_file: "examples/cifar10/mean.binaryproto"
+#  }
+  data_param {
+    source: "train-of-labels-lmdb"
+    batch_size: 256
+    backend: LMDB
+  }
+}
+
+
+
+layer {
+  name: "ofr-data"
   type: "Data"
   top: "data"
-  top: "label_local"
+#  top: "label"
   include {
     phase: TEST
   }
-  transform_param {
-    mean_file: "examples/cifar10/mean.binaryproto"
-  }
+#  transform_param {
+#    mean_file: "examples/cifar10/mean.binaryproto"
+#  }
   data_param {
-    source: "examples/cifar10/cifar10_test_lmdb"
-    batch_size: 100
+    source: "val-of-data-lmdb"
+    batch_size: 256
     backend: LMDB
   }
 }
+
+layer {
+  name: "ofr-labels"
+  type: "Data"
+#  top: "data"
+  top: "label"
+  include {
+    phase: TEST
+  }
+#  transform_param {
+#    mean_file: "examples/cifar10/mean.binaryproto"
+#  }
+  data_param {
+    source: "val-of-labels-lmdb"
+    batch_size: 256
+    backend: LMDB
+  }
+}
+
 
 layer {
   name: "conv1_1"
@@ -552,32 +592,44 @@ layer {
 #    }
   }
 }
+
+#layer {
+#  name: "loss"
+#  type: "SoftmaxWithLoss"
+#  bottom: "fc8-1"
+#  bottom: "label_local"
+#  include {
+#    phase: TRAIN
+#  }
+#}
+#layer {
+#  name: "loss"
+#  type: "SoftmaxWithLoss"
+#  bottom: "fc8-1"
+#  bottom: "label_local"
+#  top: "loss"
+#  include {
+#    phase: TEST
+#  }
+#}
+
+#layer {
+#  name: "accuracy"
+# type: "Accuracy"
+#  bottom: "fc8-1"
+#  bottom: "label_local"
+#  top: "accuracy"
+#  include {
+#    phase: TEST
+3  }
+#}
+
 layer {
   name: "loss"
-  type: "SoftmaxWithLoss"
-  bottom: "fc8-1"
-  bottom: "label_local"
-  include {
-    phase: TRAIN
-  }
-}
-layer {
-  name: "loss"
-  type: "SoftmaxWithLoss"
-  bottom: "fc8-1"
-  bottom: "label_local"
+  type: "EuclideanLoss"
+  bottom:  fc8-1
+  bottom: "label"
   top: "loss"
-  include {
-    phase: TEST
-  }
 }
-layer {
-  name: "accuracy"
-  type: "Accuracy"
-  bottom: "fc8-1"
-  bottom: "label_local"
-  top: "accuracy"
-  include {
-    phase: TEST
-  }
-}
+
+
