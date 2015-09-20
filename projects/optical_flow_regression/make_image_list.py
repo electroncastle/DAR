@@ -10,6 +10,10 @@ import lmdb
 import re, fileinput, math
 import numpy as np
 
+if 'DAR_ROOT' not in os.environ:
+    print 'FATAL ERROR. DAR_ROOT not set'
+    sys.exit()
+
 caffe_root = os.environ['DAR_ROOT']
 sys.path.insert(0, caffe_root + '/python')
 import caffe
@@ -163,20 +167,29 @@ def write_labels(lmdb_label_name, root, Inputs):
                 sys.stdout.flush()
         in_db_label.close()
 
+# @profile
 def write_images(lmdb_label_name, root, Inputs):
 
     # Size of buffer: 1000 elements to reduce memory consumption
-    for idx in range(int(math.ceil(len(Inputs)/1000.0))):
+    block_elements = 1000.0
+    blocks = int(math.ceil(len(Inputs)/block_elements))
+    for idx in range(blocks):
         in_db_label = lmdb.open(lmdb_label_name, map_size=int(1e12))
+
+        block_first = int(block_elements)*idx
+        block_last =  int(block_elements)*(idx+1)
+
         with in_db_label.begin(write=True) as in_txn:
-            for in_idx, in_ in enumerate(Inputs[(1000*idx):(1000*(idx+1))]):
+            for in_idx, in_ in enumerate(Inputs[block_first:block_last]):
                 im = load_images(root, in_)
                 # im_dat = caffe.io.array_to_datum(im.astype(float).transpose((2, 0, 1)))
                 # im_dat = caffe.io.array_to_datum(im.astype(float))
-                im_dat = caffe.io.array_to_datum(im.astype(float))
-                in_txn.put('{:0>10d}'.format(1000*idx + in_idx), im_dat.SerializeToString())
+                imf = im.astype(float)
+                im_dat = caffe.io.array_to_datum(imf)
+                im_dat_str = im_dat.SerializeToString()
+                in_txn.put('{:0>10d}'.format(block_first + in_idx), im_dat_str)
 
-                string_ = str(1000*idx+in_idx+1) + ' / ' + str(len(Inputs))
+                string_ = str(block_first + in_idx + 1) + ' / ' + str(len(Inputs))
                 sys.stdout.write("\r%s" % string_)
                 sys.stdout.flush()
         in_db_label.close()
@@ -200,7 +213,7 @@ def load_labels(root, line):
 
     return np.asarray(batch)
 
-
+# @profile
 def load_images(root, line):
 
     # print line,
@@ -230,21 +243,21 @@ if __name__ == "__main__":
     build_img_list = False
     build_img_lmdb = True
 
-    label_files = []
-    for line in fileinput.input(train_filename):
-        entries = re.split(' ', line.strip())
-        # labels.append([entries[2], entries[3].strip()])
-        label_files.append(line.strip())
-        # print entries
-
-    # labels = load_labels(path, label_files)
-
     if build_img_list:
         imgList = build_list(path, train_filename, val_filename)
 
     if build_img_lmdb:
+        label_files = []
+        for line in fileinput.input(train_filename):
+            entries = re.split(' ', line.strip())
+            # labels.append([entries[2], entries[3].strip()])
+            label_files.append(line.strip())
+            # print entries
+
+        # labels = load_labels(path, label_files)
+
         # build_lmdb(path,  train_filename, 'train_lmdb')
 
-        write_labels('train-of-labels-lmdb', path, label_files)
-        # write_images('train-of-images-lmdb', path, label_files)
+        #write_labels('train-of-labels-lmdb', path, label_files)
+        write_images('train-of-images-lmdb', path, label_files)
 
