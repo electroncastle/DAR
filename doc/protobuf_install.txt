@@ -1,0 +1,23 @@
+cd src
+
+$ . ../../../sbin/setup.sh
+
+$ git clone https://github.com/google/protobuf.git
+$ git checkout tags/v2.6.1
+
+$ ./autogen.sh
+$ ./configure --prefix=$DAR_ROOT
+$ make -j 8
+$ make install
+
+# Build the pthon extension
+$ export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=cpp
+$ export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION_VERSION=2$ python setup.py build
+$ python setup.py install --home=$DAR_ROOT --cpp_implementation
+
+
+When you want to use the cpp backend you MUST define
+$ export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=cpp
+$ export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION_VERSION=2$ python setup.py build
+
+This is done in the sbin/setup.sh so no need to do it explicitly by hand

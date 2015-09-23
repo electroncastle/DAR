@@ -135,7 +135,9 @@ void run()
 
         //MASTER
 //        QList<JobItem*> *jobs = jobsFromPath(QString::fromStdString(video_path));
-        QList<JobItem*> *jobs = jobsFromFile(QString::fromStdString(video_path+"/val.txt"));
+//        QList<JobItem*> *jobs = jobsFromFile(QString::fromStdString(video_path+"/val.txt"));
+        QList<JobItem*> *jobs = jobsFromFile(QString::fromStdString(video_path+"/annotated.txt"));
+
 
         int videoNum = 0;
         int devs=0;
@@ -149,7 +151,7 @@ void run()
             devs = cv::cuda::getCudaEnabledDeviceCount();
             std::cout << "** NO MPI" << std::endl;
             std::cout << "GPU CUDA devices: " << devs << std::endl;
-            //devs = 1;
+            devs = 1;
 
             for (int i=0; i<devs; i++){
                 im[i] = new ImageProcessor();
@@ -163,7 +165,7 @@ void run()
 
         // Start the main process
         int maxClasses = jobs->size();// /2;
-        //maxClasses = 100;
+        maxClasses = 3;
         for (int i=0; i<maxClasses; i++){
 
             JobItem *job = jobs->at(i);

@@ -41,10 +41,10 @@ def parseLine(line):
 
 def go():
 
-    test_result_flow_filename = '/home/jiri/Lake/HAR/datasets/UCF-101/val-1-rnd-result-flow.txt'
-    test_result_rgb_filename = '/home/jiri/Lake/HAR/datasets/UCF-101/val-1-rnd-result-rgb.txt'
+    test_result_flow_filename = '/home/jiri/Lake/DAR/share/datasets/UCF-101/val-1-rnd-result-flow.txt'
+    test_result_rgb_filename = '/home/jiri/Lake/DAR/share/datasets/UCF-101/val-1-rnd-result-rgb.txt'
 
-    imagenet_labels_filename = '/home/jiri/Lake/HAR/datasets/UCF-101/labels-new.txt'
+    imagenet_labels_filename = '/home/jiri/Lake/DAR/share/datasets/UCF-101/labels-new.txt'
 
     try:
         labels = np.loadtxt(imagenet_labels_filename, str, delimiter=' ')

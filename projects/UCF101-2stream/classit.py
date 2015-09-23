@@ -1,9 +1,20 @@
+
+__author__ = "Jiri Fajtl"
+__copyright__ = "Copyright 2007, The DAR Project"
+__credits__ = [""]
+__license__ = "GPL"
+__version__ = "1.0.1"
+__maintainer__ = "Jiri Fajtl"
+__email__ = "ok1zjf@gmail.com"
+__status__ = "Prototype"
+
 import os
 import io
 import sys
-import random
+# import random
 import numpy as np
 import matplotlib.pyplot as plt
+# import matplotlib.image as mpimg
 import time
 
 if 'DAR_ROOT' not in os.environ:
@@ -89,14 +100,15 @@ def getFlowImages(videoImagesPath, stack_size, samples):
 
     return flowxyImages
 
-def loadStack(imageFiles):
+# @profile
+def loadStack(imageFiles, color):
 
     channels = len(imageFiles)
     # Load X,Y optical filed frames
     batch = [] #np.empty([channels,img.shape[0], img.shape[1]])
     for b in range(0, channels):
         imgFile = imageFiles[b]
-        img = caffe.io.load_image(imgFile, False)
+        img = caffe.io.load_image(imgFile, color)
         # img = transformer.preprocess('data', img)
         channelsEx = img.shape[2]
         for c in range(0, channelsEx):
@@ -114,7 +126,7 @@ def loadStack(imageFiles):
 
     return np.asarray(batch)
 
-def initTransformer(meanImg, dataShape):
+def initTransformer(meanImg, dataShape, rgb):
     # input preprocessing: 'data' is the name of the input blob == net.inputs[0]
     transformer = caffe.io.Transformer({'data': dataShape})
     transformer.set_transpose('data', (2,0,1))
@@ -122,69 +134,153 @@ def initTransformer(meanImg, dataShape):
     if meanImg != []:
         transformer.set_mean('data', meanImg) # mean pixel
     transformer.set_raw_scale('data', 255)  # the reference model operates on images in [0,255] range instead of [0,1]
-    # transformer.set_channel_swap('data', (2,1,0))  # the reference model has channels in BGR order instead of RGB
+
+    if rgb:
+        transformer.set_channel_swap('data', (2,1,0))  # the reference model has channels in BGR order instead of RGB
 
     return transformer
 
-def transformStack(flowStack, transformer, crop, mirror):
+# @profile
+def transformStack(flowStack, transformer, crop, mirror, flow):
 
     h = flowStack[0].shape[0]
     w = flowStack[0].shape[1]
+    size = len(flowStack)
 
     # mirror = False
     # crop = 4
     cw=224
     ch=224
 
-    flowStackTrans = []
-    for f in flowStack:
+    flowStackTrans = np.empty((size,ch,cw), dtype='float32')
+    i = 0
+    for sf in flowStack:
+        # image = (f*255.0).astype(np.uint8)
+        # #image.tofile('img-'+str(i)+'.jpg')
+        # mpimg.imsave('img-o-'+str(i)+'.jpg', image)
+
+        f=sf.copy()
+        if (mirror):
+            if (flow):
+                if i % 2 == 0:
+                    # For OF x
+                    f = 1.0-np.fliplr(f)
+                     # f = np.fliplr(f)
+                else:
+                    # For OF y
+                    # f = 1.0-np.fliplr(f)
+                    f = np.fliplr(f)
+            else:
+                f = np.fliplr(f)
+
         if (crop == 0):
             ft = f[0:ch, 0:cw]
         if (crop == 1):
             ft = f[0:ch, -cw::]
-        if (crop == 2):
-            ft = f[-ch::, 0:cw]
         if (crop == 3):
-            ft = f[-ch::, -cw::]
+            ft = f[-ch::, 0:cw]
         if (crop == 4):
+            ft = f[-ch::, -cw::]
+        if (crop == 2):
             t = (h-ch)/2
             l = (w-cw)/2
             ft = f[t:t+ch, l:l+cw]
 
-        if (mirror):
-            ft = np.fliplr(ft)
+        # This works well for RGB with mine VGG16 model
+        # if (mirror):
+        #     if (flow):
+        #         if i % 2 == 0:
+        #             # For OF x
+        #             ft = 1.0-np.fliplr(ft)
+        #         else:
+        #             # For OF y
+        #             ft = np.fliplr(ft)
+        #     else:
+        #         ft = np.fliplr(ft)
 
-        flowStackTrans.append(ft)
+        flowStackTrans[i]= ft
+        # flowStackTrans.append(ft)
 
-    flowStackTrans = np.asarray(flowStackTrans)
+        # image = (ft*255.0).astype(np.uint8)
+        # #image.tofile('img-'+str(i)+'.jpg')
+        # mpimg.imsave('img-'+str(i)+'.jpg', image)
+
+        i+=1
+
+    #flowStackTrans = np.asarray(flowStackTrans)
+
+    # batch = np.transpose(flowStackTrans, (1, 2, 0))
+    # data = transformer.preprocess('data', batch)
 
     batch = np.transpose(flowStackTrans, (1, 2, 0))
     data = transformer.preprocess('data', batch)
+
     return data
 
+labels = []
+
+
+def poolMax(classes):
+
+    max_classes = np.array([0.0]*classes.shape[1])
+    for c in classes:
+        id = c.argmax()
+        val = c[id]
+        max_classes[id] += val
+
+    max_classes /=  classes.shape[0]
+    id = max_classes.argmax()
+    val = max_classes[id]
+
+    result = np.array([0.0]*classes.shape[1])
+    result[id] = val
+
+    return result
 
 def showResult(classes):
+    global labels
 
-    batchSize = len(classes)
-    #result = map(lambda x: classes[x].argmax(), range(0, batchSize))
-    # print result
-    classResultAvg = np.sum(classes.transpose(),1)/classes.shape[1]
-    # print classResultAvg
+    if 1:
+        batchSize = len(classes)
+        #result = map(lambda x: classes[x].argmax(), range(0, batchSize))
+        # print result
+        classResultAvg = np.sum(classes.transpose(),1)/classes.shape[0]
+        # print classResultAvg
 
-    result = classResultAvg.argmax()
-    # print("Predicted class is #{}.".format(result))
+        result = classResultAvg.argmax()
+        # print("Predicted class is #{}.".format(result))
+    else:
+        classResultAvg = []
+        for i in range(0, len(classes), 50):
+            nc = poolMax(classes[i:i+50,:])
+            # if classResultAvg == []:
+            #     classResultAvg = nc
+            # else:
+            #     classResultAvg = np.vstack([classResultAvg, nc])
+            if classResultAvg == []:
+                classResultAvg = nc.copy()
+            else:
+                classResultAvg = classResultAvg+nc
 
-    imagenet_labels_filename = '/home/jiri/Lake/HAR/datasets/UCF-101/labels-new.txt'
-    try:
-        labels = np.loadtxt(imagenet_labels_filename, str, delimiter=' ')
-    except:
-        return
+        classResultAvg /= (len(classes)/50)
+        result = classResultAvg.argmax()
+
+
+    if labels == []:
+        labels_filename = '/home/jiri/Lake/DAR/share/datasets/UCF-101/labels-new.txt'
+        try:
+            labels = np.loadtxt(labels_filename, str, delimiter=' ')
+        except:
+            print "Couldn't load labels from ", labels_filename
+            return
 
     print labels[result], ' ', classResultAvg[result]
 
 
-def classSpatial(net, video_path):
+transformer = None
 
+# @profile
+def classSpatial(net, video_path):
     samples = 25 # Number of frame across the video to sample
 
     # Number of x,y optical flow frames in each sample
@@ -199,27 +295,34 @@ def classSpatial(net, video_path):
     # classify augumented data
     width = 224
     height = 224
-    meanValue = 128
     channels = stack_size*3
 
     meanImg = []
-    meanImg = np.array([[np.transpose([104 for i in range(width)])]*height,
-                       [np.transpose([117 for i in range(width)])]*height,
-                       [np.transpose([123 for i in range(width)])]*height])
+    meanImg = np.array([[np.transpose([104.0 for i in range(width)])]*height,
+                       [np.transpose([117.0 for i in range(width)])]*height,
+                       [np.transpose([123.0 for i in range(width)])]*height], dtype='float32')
+
+    global transformer
+    if transformer is None:
+        transformer = initTransformer(meanImg, net.blobs['data'].data.shape, True)
+
+    start = time.time()
 
     allClasses = []
     for b in range(0, samples/batch_num):
         imgs = []
         for s in range(0, batch_num):
             sample = images[s*b]
-            flowStack = loadStack(sample)
+            flowStack = loadStack(sample, True)
 
             # Perform 10 data augumentation
             # Five spatial positions, left-top, right-top, left-bottom, right-bottom, center
             # For all spatial position perform mirroring
             for m in [True, False]:
                 for c in range(0,5):
-                    imgs.append(transformStack(flowStack, meanImg, net.blobs['data'].data.shape, c, m))
+                    # net.blobs['data'].data.shape
+                    ts=transformStack(flowStack, transformer,  c, m, False)
+                    imgs.append(ts)
 
         # Run forward pass with batch 50
         net.blobs['data'].reshape(batch_size, channels, width, height)
@@ -229,16 +332,19 @@ def classSpatial(net, video_path):
         out = net.forward()
         classes = out['prob']
         if allClasses == []:
-            allClasses = classes
+            allClasses = np.copy(classes)
         else:
             allClasses = np.append(allClasses, classes, axis=0)
 
         print b,' ',
         showResult(classes)
 
+    end = time.time()
+    print "TOOK: ", (end - start)
+
     return allClasses
 
-
+# @profile
 def classTemporal(net, video_path):
 
     samples = 25 # Number of frame across the video to sample
@@ -256,11 +362,13 @@ def classTemporal(net, video_path):
     # classify augumented data
     width = 224
     height = 224
-    meanValue = 128
+    meanValue = 128.0
     channels = stack_size*2
-    meanImg = np.array([[np.transpose([meanValue for i in range(width)])]*height] * channels)
+    meanImg = np.array([[np.transpose([meanValue for i in range(width)])]*height] * channels, dtype='float32')
 
-    transformer = initTransformer(meanImg, net.blobs['data'].data.shape)
+    global transformer
+    if transformer is None:
+        transformer = initTransformer(meanImg, net.blobs['data'].data.shape, False)
 
     start = time.time()
 
@@ -270,38 +378,38 @@ def classTemporal(net, video_path):
         for s in range(0, batch_num):
 
             sample = images[s*b]
-            flowStack = loadStack(sample)
+            flowStack = loadStack(sample, False)
 
             # Perform 10 data augmentation
             # Five spatial positions, left-top, right-top, left-bottom, right-bottom, center
             # For all spatial position perform mirroring
-            for m in [True, False]:
+            for m in [False,True]:
                 for c in range(0,5):
-                    imgs.append(transformStack(flowStack, transformer, c, m))
-
+                    ts=transformStack(flowStack, transformer, c, m, True)
+                    imgs.append(ts)
 
         # Run forward pass with batch 50
         net.blobs['data'].reshape(batch_size, channels, width, height)
         net.blobs['data'].data[...] = imgs
 
-        end = time.time()
+        # end = time.time()
         # print "Imgs loading & transformation took: ", (end - start)
 
-        start = time.time()
+        # start = time.time()
 
         #print "Runnig forward pass"
         out = net.forward()
         classes = out['prob']
         if allClasses == []:
-            allClasses = classes
+            allClasses = np.copy(classes)
         else:
             allClasses = np.append(allClasses, classes, axis=0)
 
         print b,' ',
         showResult(classes)
-        end = time.time()
-        # print end - start
 
+    end = time.time()
+    print "TOOK: ", (end - start)
 
     return allClasses
 
@@ -336,10 +444,21 @@ def loadTestVideos(filename):
 
 def recordResult(file_rgb_result, result, test_video, labels):
 
-    classResultAvg = np.sum(result.transpose(),1)/result.shape[1]
-    classId = classResultAvg.argmax()
+    if 1:
+        classResultAvg = np.sum(result.transpose(),1)/result.shape[0]
+        classId = classResultAvg.argmax()
+    else:
+        classResultAvg = np.array([0.0]*result.shape[1])
 
-    print labels[classId]
+        for c in result:
+            id = c.argmax()
+            val = c[id]
+            classResultAvg[id] += val
+
+        classResultAvg = classResultAvg / result.shape[0]
+        classId = classResultAvg.argmax()
+
+    # print labels[classId]
 
     # trueClass, founfClass, videoname, feature_vector
     videoDir = test_video[1].split('/')
@@ -355,21 +474,22 @@ def recordResult(file_rgb_result, result, test_video, labels):
         file_rgb_result.write(record+'\n')
         file_rgb_result.flush()
 
-    return     classId
+    return classId
 
 
-def go(gpuid, flow):
+def go(gpuid, flow, no_out):
 
     flow_proto = app_dir+'/models-proto/two-streams-nvidia/vgg_16_flow_deploy.prototxt'
     flow_model = app_dir+'/models-bin/two-streams_16_split1_flow-nvidia_iter_26000.caffemodel'
-    #flow_model = '/home/jiri/Lake/HAR/UCF101-2stream/cuhk_action_temporal_vgg_16_split1.caffemodel'
+    flow_model = app_dir+'/models-bin/cuhk_action_temporal_vgg_16_split1.caffemodel'
 
     rgb_proto = app_dir+'/models-proto/two-streams-nvidia/vgg_16_rgb_deploy.prototxt'
     rgb_model = app_dir+'/models-bin/two-streams_vgg_16_split1_rgb-nvidia_iter_10000.caffemodel'
-    #rgb_model = '/home/jiri/Lake/HAR/UCF101-2stream/cuhk_action_spatial_vgg_16_split1.caffemodel'
+    #rgb_model = app_dir+'/models-bin/cuhk_action_spatial_vgg_16_split1.caffemodel'
 
 
     video_path = dar_root+'/share/datasets/UCF-101/UCF101-rgbflow/FloorGymnastics/v_FloorGymnastics_g16_c04'
+    video_path = dar_root+'/share/datasets/UCF-101/UCF101-rgbflow/Shotput/v_Shotput_g07_c01'
     #video_path = '/home/jiri/Lake/HAR/datasets/UCF-101/UCF101-rgbflow/Diving/v_Diving_g22_c06'
     #video_path = '/home/jiri/Lake/HAR/datasets/UCF-101/UCF101-rgbflow/IceDancing/v_IceDancing_g03_c03'
 
@@ -394,20 +514,25 @@ def go(gpuid, flow):
     if flow:
         outFilename = test_result_flow_filename
         net = caffe.Net(flow_proto, flow_model, caffe.TEST)
+        print 'TEMPORAL'
     else:
         outFilename = test_result_rgb_filename
         net = caffe.Net(rgb_proto, rgb_model, caffe.TEST)
+        print 'SPATIAL'
+
 
     file_out = None
-#    file_out = open(outFilename, 'r+t')
-#    file_out.seek(0, io.SEEK_SET)
+    if not no_out:
+        file_out = open(outFilename, 'r+t')
+        file_out.seek(0, io.SEEK_SET)
 
 
     correct = 0
-    for v in range(0, len(test_videos)):
+    test_video_len = len(test_videos)
+    for v in range(0, test_video_len):
 
         test_video = test_videos[v]
-        # test_video[1] = video_path
+        #test_video[1] = video_path
 
         videoDir = test_video[1].split('/')
         videoDir = videoDir[len(videoDir)-1].strip()
@@ -425,7 +550,7 @@ def go(gpuid, flow):
                     continue
 
         print "====================="
-        print v, "  Classifying: ", test_video[0], ' ', videoDir
+        print v, "/",test_video_len,"  Classifying: ", test_video[0], ' ', videoDir
         if flow:
             result = classTemporal(net, test_video[1])
         else:
@@ -447,8 +572,16 @@ def go(gpuid, flow):
 
 
 if __name__ == "__main__":
-    
-    go(0, True)	# Temporal
-    #go(1, False) # Spatial
 
+    run_type = sys.argv[1]
+
+    dry_run = False
+    if len(sys.argv) > 2:
+        dry_run = sys.argv[2] == 'v'
+
+    if run_type == 't':
+        go(0, True, dry_run)	# Temporal
+
+    if run_type == 's':
+        go(1, False, dry_run) # Spatial
 

@@ -9,6 +9,7 @@ using namespace std;
 
 #include <stdio.h>
 #include <iostream>
+#include <sys/time.h>
 using namespace cv;
 //using namespace cv::gpu;
 
@@ -307,12 +308,61 @@ void ImageProcessor::finish()
 }
 
 
+Mat img_resize(Mat &src, cv::Size new_size, int resize_type)
+{
+    int cw = src.cols;
+    int ch = src.rows;
+
+    Mat result;
+    if (resize_type == 2){
+        Mat tmp;
+        // crop
+        float aspect = (float)cw/ch;
+
+        int hd = new_size.height - ch;
+        int wd = new_size.width - cw;
+
+        if (hd*aspect > wd)
+            cv::resize(src, tmp, cv::Size(cw+aspect*hd, new_size.height));
+        else
+            cv::resize(src, tmp, cv::Size(new_size.width, ch+wd/aspect));
+
+        int x = (tmp.cols-new_size.width) / 2;
+        int y = (tmp.rows-new_size.height) / 2;
+        cv::Rect crop_rect(x, y, new_size.width, new_size.height);
+        result = tmp(crop_rect);
+//        cv::imshow("src", src);
+//        cv::imshow("tmp", result);
+//        cv::waitKey(0);
+    }
+
+
+    return result;
+}
+
 int ImageProcessor::process(QString videoClass, QString videoFileName)
 {
+    vector<int> p;
+    p.push_back(CV_IMWRITE_JPEG_QUALITY);
+    p.push_back(99); // compression factor
+
     bool overwrite = false;
     int step = 1;
     int type = 1;
     int bound = 20;
+
+    int new_width = 320;
+    int new_height = 256;
+    cv::Size new_size(new_width, new_height);
+
+    // 0 - stretch
+    // 1 - fit
+    // 2 - crop
+    int resize_type = 2;
+    //bool preserve_aspect_ratio = true;
+
+
+    //--------------------------
 
     QFileInfo fileInfo(videoFileName);
     QString classPath = path+"/"+videoClass+"/"+fileInfo.baseName()+"/";
@@ -350,11 +400,36 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
 
     GpuMat d_flow(frame_0.size(), CV_32FC2);
 
+
     bool processed = false;
+    struct timeval now, last;
+    gettimeofday(&last, NULL);
+    int fpsFrames = 0;
     while(true) {
         capture >> frame;
         if(frame.empty())
             break;
+
+
+        // start timer
+        gettimeofday(&now, NULL);
+        fpsFrames++;
+
+        // Compute and print the elapsed time in millisec
+        double elapsedTime;
+        elapsedTime = (now.tv_sec - last.tv_sec) * 1000.0;      // sec to ms
+        elapsedTime += (now.tv_usec - last.tv_usec) / 1000.0;   // us to ms
+
+        if (elapsedTime >= 1000.0){
+            float fps = 1000.0*fpsFrames/elapsedTime;
+            std::cout << "[" << frame_num << "] fps: " << fps << std::endl << std::flush;
+
+            fpsFrames=0;
+            last = now;
+        }
+
+
+
 
         if(frame_num == 0) {
             image.create(frame.size(), CV_8UC3);
@@ -385,6 +460,8 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
         QString imgFileFull = imgFile + QString(tmp);
         QString flowFileFull = flowFile + QString(tmp);
 
+        //printf("Decoded frame: %d\n", frame_num);
+
 //        qDebug() << xFlowFileFull;
 //        qDebug() << yFlowFileFull;
 //        qDebug() << imgFileFull;
@@ -400,6 +477,9 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
     //        imshow("main", grey);
     //        waitKey(1);
     //        continue;
+
+#define DO_FLOW 1
+#ifdef DO_FLOW
 
             frame_0.upload(prev_grey);
             frame_1.upload(grey);
@@ -437,15 +517,21 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
     //		flow_u.download(flow_x);
     //		flow_v.download(flow_y);
             // Opencv 3.0
+
             GpuMat planes[2];
             cuda::split(d_flow, planes);
             Mat flow_x(planes[0]);
             Mat flow_y(planes[1]);
-
+#else
+            Mat flow_x = cv::Mat(240, 320, CV_32FC1, cv::Scalar(0.5));
+            Mat flow_y  = cv::Mat(240, 320, CV_32FC1, cv::Scalar(0.5));
+#endif
             // Output optical flow
             Mat imgX(flow_x.size(),CV_8UC1);
             Mat imgY(flow_y.size(),CV_8UC1);
+
             convertFlowToImage(flow_x, flow_y, imgX, imgY, -bound, bound);
+
 
             if (1){
                 // Write out combined flow filed as RGB img
@@ -475,22 +561,27 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
 
                 cv::Mat out;
                 cv::merge(channels, out);
-                cv::imwrite(flowFileFull.toStdString(), out);
+                cv::imwrite(flowFileFull.toStdString(), out, p);
                 //std::cout << flowFileFull.toStdString().c_str() << std::endl << std::flush;
             }
 
 
             if (1){
-
                 Mat imgX_, imgY_, image_;
-                resize(imgX,imgX_,cv::Size(340,256));
-                resize(imgY,imgY_,cv::Size(340,256));
-                resize(image, image_,cv::Size(340,256));
+//                resize(imgX,imgX_,cv::Size(340,256));
+//                resize(imgY,imgY_,cv::Size(340,256));
+//                resize(image, image_,cv::Size(340,256));
 
-                imwrite(xFlowFile.toStdString() + tmp, imgX_);
-                imwrite(yFlowFile.toStdString() + tmp, imgY_);
-                imwrite(imgFile.toStdString() + tmp, image_);
+                imgX_ = img_resize(imgX, new_size, resize_type);
+                imgY_ = img_resize(imgY, new_size, resize_type);
+                image_ = img_resize(image, new_size, resize_type);
+
+                imwrite(xFlowFile.toStdString() + tmp, imgX_, p);
+                imwrite(yFlowFile.toStdString() + tmp, imgY_, p);
+                imwrite(imgFile.toStdString() + tmp, image_, p);
             }
+            //std::cout << "OF done: " << imgFile.toStdString().c_str() << std::endl << std::flush;
+
         }else{
            // std::cout << "[" << gpu_id << "] "<< "Already exist (rgb, xflow, yflow): " << imgFileFull.toStdString() <<  std::endl << std::flush;
         }
@@ -505,6 +596,8 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
             step_t--;
         }
     }
+
+    std::cout << "VIDEO done: " << imgFile.toStdString().c_str() << std::endl << std::flush;
 
     if (!processed)
         return -2;
@@ -561,8 +654,10 @@ void ImageProcessor::run()
         int videoFrames = process(videoClass, videoFileName);
         if (videoFrames == -2){
         }
+        std::cout << "[" << gpu_id << "] " << videoFileName.toStdString() << " Done. Frames: " << frames << std::endl << std::flush;
+
         frames++;
     }
 
-    std::cout << "[" << gpu_id << "] " << "Done Processed videos : " << frames;
+    std::cout << "[" << gpu_id << "] " << "Done Processed videos : " << frames << std::endl << std::flush;
 }
