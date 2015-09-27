@@ -73,7 +73,7 @@ class VideoActionsLabeler(object):
 
         try:
             self.labels = np.loadtxt(self.labels_file, str, delimiter=' ')
-            self.labels = np.vstack([self.labels, ['101', 'BAKGROUND']])
+            self.labels = np.vstack([self.labels, ['101', 'BACKGROUND']])
         except:
             print 'Cannot load labels: ',self.labels_file
 
@@ -179,79 +179,10 @@ class VideoActionsLabeler(object):
         pass
 
 
-    def build_action_list(self, file_name, classes):
-
-        # Build a list of actions with the time window
-        action_list = []
-        for i in range(len(classes)):
-            cc = classes[i]
-
-            # if cc[1] not in self.labels_annotation_ids:
-            #     continue
-
-            # Remove short action and action with low confidence
-            # if cc[2] < 0.3:
-            #     continue
-
-            # Create new record
-            current_action = [file_name, cc[0], cc[0], cc[1], cc[2], self.labels[cc[1]-1][1] ]
-            action_list.append(current_action)
-
-        return action_list
 
 
-    def merge_action_list(self, action_list):
-
-        # Build a list of actions with the time window
-        action_list_new = []
-        current_action = []
-        action_len = 0;
-        for i in range(len(action_list)):
-
-            cc = action_list[i]
-
-            if current_action == []:
-                # Create new record
-                current_action = cc #[file_name, cc[0], cc[0], cc[1], cc[2], self.labels[cc[1]][1] ]
-                action_len = 1
-            else:
-                if current_action[3] != cc[3]:
-
-                    # Finish current action
-                    current_action[2] = cc[2] # set the END time
-                    current_action[4] = current_action[4]/float(action_len)
-                    action_list_new.append(current_action)
-
-                    # Create new action
-                    cc[1] = current_action[2]
-                    current_action = cc
-                    action_len = 1
-                else:
-                    current_action[4] += cc[4]
-                    action_len += 1
-
-        return action_list_new
 
 
-    def clean_action_list(self, action_list):
-        # Clean up. Set the foreign classes as background
-        action_list_clean = []
-        for a in action_list:
-
-            # Remove background
-            if a[3] not in self.labels_annotation_ids:
-                continue
-
-            # Remove short action and action with low confidence
-            # if a[2]-a[1] < 0.4 or a[4] < 0.4:
-            #     continue
-
-            action_list_clean.append(a)
-            # if 'Shotput' == a[5]:
-            #     print a
-            #print a
-
-        return action_list_clean
 
 
     def merge_action_list_x(self, file_name, classes_flt):
@@ -265,7 +196,6 @@ class VideoActionsLabeler(object):
         for i in range(len(classes)):
 
             cc = classes[i]
-
             if cc[1] not in self.labels_annotation_ids:
                 continue
 
@@ -315,12 +245,17 @@ class VideoActionsLabeler(object):
 
 
     def process(self, temporal_data, spatial_data, video_filename):
-        max_frames = min(len(temporal_data), len(spatial_data))
+        temp_len=len(temporal_data)
+        spatial_len=len(spatial_data)
+        if (spatial_len != temp_len):
+            print "[WARNING] Temporal and spatial streams have different number of frames! spatial=",spatial_len," temporal=",temp_len
+
+        max_frames = min(temp_len, spatial_len)
         print max_frames
 
         frames = temporal_data[:max_frames, 0].astype(int)
 
-        temp_w = 0.0
+        temp_w = 0.35   # Best 0.35
         classes = (temporal_data[:max_frames, 1:]*temp_w + spatial_data[:max_frames, 1:]*(1.0-temp_w))
         # classes = temporal_data[:max_frames, 1:]
         print classes.shape
@@ -329,7 +264,6 @@ class VideoActionsLabeler(object):
         fps = 30.0
         wnd_size_sec = 0.3
         wnd_size = int(wnd_size_sec*fps/step)+1
-        close_gaps = False
 
         classes_flt = []
         for i in range(len(classes)-wnd_size):
@@ -339,10 +273,12 @@ class VideoActionsLabeler(object):
             class_val = b[class_id]
             class_id += 1 # The Thumos labels are indexed 1..N while our 0..N-1
 
+            # Detection with confidence lower than this will be labeled as
+            # background
             if (class_val < 0.3):
                 class_id = 102
-            #
-            # Remove background
+
+            # Set all unknown classes to background
             if class_id not in self.labels_annotation_ids:
                 class_id = 102
 
@@ -352,27 +288,32 @@ class VideoActionsLabeler(object):
             # if 'Shotput' == self.labels[class_id-1][1]:
             #     print time, class_id, class_val, self.labels[class_id-1][1]
 
+
+            # Remove noisy detections such as:
+            # - remove class B if is positioned as AABAA
         if 1:
             for i in range(len(classes_flt)-2):
                 cc = classes_flt[i]
                 # print cc
 
-                if classes_flt[i-1][1] == classes_flt[i+1][1] and \
-                    classes_flt[i-2][1] == classes_flt[i+2][1] and \
-                    classes_flt[i-1][1] == classes_flt[i-2][1]:
+                if classes_flt[i-1][1] == classes_flt[i+1][1]: #and \
+                    # classes_flt[i-2][1] == classes_flt[i+2][1] and \
+                    # classes_flt[i-1][1] == classes_flt[i-2][1]:
 
                     if cc[1] != classes_flt[i-1][1]:
                         cc[1] = classes_flt[i-1][1]
                         cc[3] = classes_flt[i-1][3]
 
                         wnd = np.asarray(classes_flt[i-2:i]+classes_flt[i+1:i+3])
+                        # wnd = np.asarray(classes_flt[i-1:i]+classes_flt[i+1:i+2])
                         avg = wnd[:,2].astype(float)
                         avg = sum(avg)/4.0
+                        # avg = sum(avg)/2.0
 
                         cc[2] = avg
 
         # Close gaps
-        if close_gaps:
+        if 0:
             gap_size_sec = 1.3  #sec
             gap_size = int(gap_size_sec*fps/step)
             classes_final = []
@@ -387,21 +328,88 @@ class VideoActionsLabeler(object):
 
         return classes_flt
 
+
+    def build_action_list(self, file_name, classes):
+
+        # Build a list of actions with the time window
+        action_list = []
+        for i in range(len(classes)):
+            cc = classes[i]
+
+            # Create new record
+            current_action = [file_name, cc[0], cc[0], cc[1], cc[2], self.labels[cc[1]-1][1]]
+            action_list.append(current_action)
+
+        return action_list
+
+
+    def merge_action_list(self, action_list):
+
+        # Build a list of actions with the time window
+        action_list_new = []
+        current_action = []
+        action_len = 0;
+        for i in range(len(action_list)):
+
+            cc = action_list[i]
+            # print cc
+
+            if current_action == []:
+                # Create new record
+                current_action = cc #[file_name, cc[0], cc[0], cc[1], cc[2], self.labels[cc[1]][1] ]
+                action_len = 1
+            else:
+                if current_action[3] != cc[3]:
+
+                    # Finish current action
+                    current_action[2] = cc[2] # set the END time
+                    current_action[4] = current_action[4]/float(action_len)
+                    action_list_new.append(current_action)
+
+                    # Create new action
+                    cc[1] = current_action[2]
+                    current_action = cc
+                    action_len = 1
+                else:
+                    current_action[4] += cc[4]
+                    action_len += 1
+
+        return action_list_new
+
+
+    def clean_action_list(self, action_list):
+        # Clean up. Set the foreign classes as background
+        action_list_clean = []
+        for a in action_list:
+
+            # Remove background
+            if a[3] not in self.labels_annotation_ids:
+                continue
+
+            # Remove short action and action with low confidence
+            # if a[2]-a[1] < 0.4 or a[4] < 0.4:
+            #     continue
+
+            action_list_clean.append(a)
+            # if 'Shotput' == a[5]:
+            #     print a
+            #print a
+
+        return action_list_clean
+
+
     def record(self, actions, fout):
         # [video_name] [starting_time] [ending_time] [class_label] [confidence_score]
 
         for action in actions:
             action_str = [str(a) for a in action]
 
+            # Remove the last item in the action array, This is not compatible with the THUMOS2015 format
             rec = ' '.join(action_str[:-1])
             fout.write(rec+'\n')
-
         fout.flush()
         return
 
-
-    def within(self, val, interval):
-        return val >= interval[0] and val <= interval[1]
 
 
     def get_overlap(self,a, b):
@@ -411,10 +419,10 @@ class VideoActionsLabeler(object):
         mau = max(a[1], b[1])
         miu = min(a[0], b[0])
 
-        i = max(0, mii-mai)
-        u = max(0, mau-miu)
+        i = max(0, mii-mai) # Intersection
+        u = max(0, mau-miu) # Union
 
-        po = i/u
+        po = i/u    # Overlap in range 0..1
 
         return [i, u, po]
 
@@ -464,24 +472,20 @@ class VideoActionsLabeler(object):
 
         gt = self.annotations_gt[file]
 
-        #gt_overlaps = []
         for gti in range(len(gt)):
             g = gt[gti]
             # get detected actions overlapping with this ground truth
             # Modifieds action[6] array
             # This array has has formant [intersection, union, overlap percentage, ground_truth_id]
-            uact = self.get_actions(actions, [g[0], g[1]], g[2], gti)
-            #gt_overlaps.append(uact)
+            self.get_actions(actions, [g[0], g[1]], g[2], gti)
 
         # Find TP and FP
         tp = 0
         fp = 0
-        fn = 0
         for a in actions:
             print a
             if a[6][2] > 0.5:
                 tp += 1
-                print a
             else:
                 fp += 1
             pass
@@ -558,8 +562,8 @@ class VideoActionsLabeler(object):
 #            file_out = video_path+'/actions.txt'
 
             classes = self.process(temporal_data, spatial_data, file)
-            for c in classes:
-                print c
+            # for c in classes:
+            #     print c
             action_list = self.build_action_list(file, classes)
 
             action_list = self.merge_action_list(action_list)
