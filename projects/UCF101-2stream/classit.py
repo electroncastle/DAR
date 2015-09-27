@@ -377,7 +377,8 @@ def classTemporal(net, video_path):
         imgs = []
         for s in range(0, batch_num):
 
-            sample = images[s*b]
+            sample = images[(b*batch_num)+s]
+            # print sample
             flowStack = loadStack(sample, False)
 
             # Perform 10 data augmentation
@@ -429,7 +430,7 @@ def classTemporal(net, video_path):
     vis_square(feat, padval=1)
 
 
-def loadTestVideos(filename):
+def loadTestVideos(filename, path):
 
     dset = open(filename, 'rt')
     print filename
@@ -437,7 +438,7 @@ def loadTestVideos(filename):
     videos = []
     for line in dset:
         toks = line.split(' ')
-        videos.append([toks[2].strip(), toks[0].strip()])
+        videos.append([toks[2].strip(), path+toks[0].strip()])
 
     return videos
 
@@ -487,17 +488,21 @@ def go(gpuid, flow, no_out):
     rgb_model = app_dir+'/models-bin/two-streams_vgg_16_split1_rgb-nvidia_iter_10000.caffemodel'
     #rgb_model = app_dir+'/models-bin/cuhk_action_spatial_vgg_16_split1.caffemodel'
 
+    dataset_dir = dar_root+'/share/datasets/'
+    rgbflow_path = dataset_dir+'/UCF-101/UCF101-rgbflow/'
+    rgbflow_path = dataset_dir+'/UCF-101/ucf101_flow_img_tvl1_gpu/'
 
-    video_path = dar_root+'/share/datasets/UCF-101/UCF101-rgbflow/FloorGymnastics/v_FloorGymnastics_g16_c04'
-    video_path = dar_root+'/share/datasets/UCF-101/UCF101-rgbflow/Shotput/v_Shotput_g07_c01'
+    video_path = rgbflow_path+'/FloorGymnastics/v_FloorGymnastics_g16_c04'
+    video_path = rgbflow_path+'/Shotput/v_Shotput_g05_c07'
     #video_path = '/home/jiri/Lake/HAR/datasets/UCF-101/UCF101-rgbflow/Diving/v_Diving_g22_c06'
     #video_path = '/home/jiri/Lake/HAR/datasets/UCF-101/UCF101-rgbflow/IceDancing/v_IceDancing_g03_c03'
 
-    test_data_filename = dar_root+'/share/datasets/UCF-101/val-1-rnd.txt'
-    test_result_flow_filename = dar_root+'/share/datasets/UCF-101/val-1-rnd-result-flow.txt'
-    test_result_rgb_filename = dar_root+'/share/datasets/UCF-101/val-1-rnd-result-rgb.txt'
+    test_data_filename = dataset_dir+'/UCF-101/val-1-rnd.txt'
 
-    imagenet_labels_filename = dar_root+'/share/datasets/UCF-101/labels-new.txt'
+    test_result_flow_filename = dataset_dir+'/UCF-101/val-1-rnd-result-flow.txt'
+    test_result_rgb_filename = dataset_dir+'/UCF-101/val-1-rnd-result-rgb.txt'
+
+    imagenet_labels_filename = dataset_dir+'/UCF-101/labels-new.txt'
 
 
     try:
@@ -505,7 +510,7 @@ def go(gpuid, flow, no_out):
     except:
         return
 
-    test_videos = loadTestVideos(test_data_filename)
+    test_videos = loadTestVideos(test_data_filename, rgbflow_path)
 
     #caffe.set_mode_cpu()
     caffe.set_mode_gpu()
@@ -523,6 +528,9 @@ def go(gpuid, flow, no_out):
 
     file_out = None
     if not no_out:
+        if not os.path.isfile(outFilename):
+            file_out = open(outFilename, 'wt')
+            file_out.close()
         file_out = open(outFilename, 'r+t')
         file_out.seek(0, io.SEEK_SET)
 
@@ -532,7 +540,7 @@ def go(gpuid, flow, no_out):
     for v in range(0, test_video_len):
 
         test_video = test_videos[v]
-        #test_video[1] = video_path
+        # test_video[1] = video_path
 
         videoDir = test_video[1].split('/')
         videoDir = videoDir[len(videoDir)-1].strip()
@@ -572,6 +580,17 @@ def go(gpuid, flow, no_out):
 
 
 if __name__ == "__main__":
+
+    if len(sys.argv) == 1:
+        print "You need to specify what type of detection you want to run"
+        print "Options:"
+        print "\tt\t temporal domain"
+        print "\ts\t spatial domain"
+        print "Additionally you can specify second paramters"
+        print "\tv\t test run - doesn't write out results to output files"
+
+        sys.exit(0)
+
 
     run_type = sys.argv[1]
 

@@ -1,0 +1,13 @@
+
+RGB 
+- tested every 25 frames 
+
+Flow
+- stack of 25 frames
+
+
+input: 
+	txt list of validation videos mp4/avi
+
+
+

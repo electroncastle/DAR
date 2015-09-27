@@ -1,7 +1,13 @@
 cmake_minimum_required(VERSION 2.8)
 project( flowMaker )
 
-set(OPENCV_ROOT "/home/jiri/Lake/DAR/share/OpenCV/"  )
+if (DEFINED OPENCV_ROOT)
+    message("OPENCV_ROOT " ${OPENCV_ROOT})
+else()
+    set(OPENCV_ROOT "/home/jiri/Lake/DAR/share/OpenCV/"  )
+    message("OPENCV_ROOT is NOT defined, setting " ${OPENCV_ROOT})
+endif()
+
 
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${OPENCV_ROOT}  )

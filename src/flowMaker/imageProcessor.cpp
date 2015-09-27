@@ -340,6 +340,11 @@ Mat img_resize(Mat &src, cv::Size new_size, int resize_type)
     return result;
 }
 
+//int ImageProcessor::processSimple(QString img1, QString img2)
+//{
+
+//}
+
 int ImageProcessor::process(QString videoClass, QString videoFileName)
 {
     vector<int> p;
@@ -347,6 +352,7 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
     p.push_back(99); // compression factor
 
     bool overwrite = false;
+    bool createCompactFlowImage = false;  // RGB jpg -> R=flow_x  G=flow_y B=mag
     int step = 1;
     int type = 1;
     int bound = 20;
@@ -422,7 +428,7 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
 
         if (elapsedTime >= 1000.0){
             float fps = 1000.0*fpsFrames/elapsedTime;
-            std::cout << "[" << frame_num << "] fps: " << fps << std::endl << std::flush;
+            std::cout << "[" << this->mpi_id << "-" <<frame_num << "  fps: " << fps << std::endl << std::flush;
 
             fpsFrames=0;
             last = now;
@@ -466,7 +472,7 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
 //        qDebug() << yFlowFileFull;
 //        qDebug() << imgFileFull;
         if (overwrite ||
-                !QFileInfo( flowFileFull).exists() ||
+                (!QFileInfo(flowFileFull).exists() && createCompactFlowImage) ||
                 !QFileInfo(xFlowFileFull).exists() ||
                 !QFileInfo(yFlowFileFull).exists() ||
                 !QFileInfo(imgFileFull).exists()){
@@ -526,12 +532,20 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
             Mat flow_x = cv::Mat(240, 320, CV_32FC1, cv::Scalar(0.5));
             Mat flow_y  = cv::Mat(240, 320, CV_32FC1, cv::Scalar(0.5));
 #endif
+
+            ImageItem ii;
+            ii.set(flow_x, flow_y, image, bound,
+                   imgFile + tmp,  xFlowFile + tmp, yFlowFile + tmp,
+                   new_size, resize_type, createCompactFlowImage);
+            imageQueue->push(ii);
+
+#ifdef XXX
+if(0){
             // Output optical flow
             Mat imgX(flow_x.size(),CV_8UC1);
             Mat imgY(flow_y.size(),CV_8UC1);
 
             convertFlowToImage(flow_x, flow_y, imgX, imgY, -bound, bound);
-
 
             if (1){
                 // Write out combined flow filed as RGB img
@@ -561,7 +575,19 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
 
                 cv::Mat out;
                 cv::merge(channels, out);
-                cv::imwrite(flowFileFull.toStdString(), out, p);
+
+                if (threaded_imgwrite){
+                    ImageItem ii;
+                    ii.filename = flowFileFull;
+                    ii.new_size = cv::Size(0,0);
+                    ii.resize_type = 0;
+                    ii.image = out;
+                    imageQueue->push(ii);
+                }else{
+                    cv::imwrite(flowFileFull.toStdString(), out, p);
+                }
+
+
                 //std::cout << flowFileFull.toStdString().c_str() << std::endl << std::flush;
             }
 
@@ -572,20 +598,28 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
 //                resize(imgY,imgY_,cv::Size(340,256));
 //                resize(image, image_,cv::Size(340,256));
 
-                imgX_ = img_resize(imgX, new_size, resize_type);
-                imgY_ = img_resize(imgY, new_size, resize_type);
-                image_ = img_resize(image, new_size, resize_type);
+                if (threaded_imgwrite){
+                    ImageItem ii;
+                    ii.set(imgX, xFlowFile + tmp, new_size, resize_type); imageQueue->push(ii);
+                    ii.set(imgY, yFlowFile + tmp, new_size, resize_type); imageQueue->push(ii);
+                    ii.set(image, imgFile + tmp, new_size, resize_type); imageQueue->push(ii);
+                }else{
+                    imgX_ = img_resize(imgX, new_size, resize_type);
+                    imgY_ = img_resize(imgY, new_size, resize_type);
+                    image_ = img_resize(image, new_size, resize_type);
 
-                imwrite(xFlowFile.toStdString() + tmp, imgX_, p);
-                imwrite(yFlowFile.toStdString() + tmp, imgY_, p);
-                imwrite(imgFile.toStdString() + tmp, image_, p);
+                    imwrite(xFlowFile.toStdString() + tmp, imgX_, p);
+                    imwrite(yFlowFile.toStdString() + tmp, imgY_, p);
+                    imwrite(imgFile.toStdString() + tmp, image_, p);
+                }
             }
             //std::cout << "OF done: " << imgFile.toStdString().c_str() << std::endl << std::flush;
+}
+#endif
 
         }else{
            // std::cout << "[" << gpu_id << "] "<< "Already exist (rgb, xflow, yflow): " << imgFileFull.toStdString() <<  std::endl << std::flush;
         }
-
         std::swap(prev_grey, grey);
         std::swap(prev_image, image);
         frame_num = frame_num + 1;
@@ -612,29 +646,17 @@ void ImageProcessor::run()
 //    Qt::HANDLE thandle = QThread::currentThreadId();
 //    qDebug("Thread id inside run %X", thandle);
 
+    threaded_imgwrite = true;
+    imgWriter = new ImageWriter();
+    imageQueue = new ConcurrentQueue<ImageItem>();
+    imgWriter->setImageQueue(imageQueue);
+    imgWriter->start();
+
     frames = 0;
     //static int value=0; //If this is not static, then it is reset to 0 every time this function is called.
     isRunning = 1;
     while(true)  {
 
-        // If there are no jobs check later
-/*
-        mutex->lock();
-        if (!jobs || jobs->size() == 0){
-            mutex->unlock();
-            if (isRunning == 0)
-                break;
-            msleep(5);
-            continue;
-           // break;
-        }
-
-        // Get next job
-        JobItem *job = jobs->first();
-        jobs->removeFirst();
-        int left = jobs->size();
-        mutex->unlock();
-*/
         JobItem job;
         jobQueue->popWait(job);
         int left = jobQueue->size();
@@ -650,7 +672,8 @@ void ImageProcessor::run()
                 continue;
             videoClass = toks[1];
         }
-        std::cout << "[" << mpi_id << "/" << gpu_id << "  " << frames  << "-" << left << "] " << videoFileName.toStdString() << std::endl << std::flush;
+//        std::cout << "[" << mpi_id << "/" << gpu_id << "  " << frames  << "-" << left << "] " << videoFileName.toStdString() << std::endl << std::flush;
+        std::cout << "[mpi=" << mpi_id << " gpu=" << gpu_id << "  frames_done=" << frames   << "] " << videoFileName.toStdString() << std::endl << std::flush;
         int videoFrames = process(videoClass, videoFileName);
         if (videoFrames == -2){
         }
@@ -660,4 +683,108 @@ void ImageProcessor::run()
     }
 
     std::cout << "[" << gpu_id << "] " << "Done Processed videos : " << frames << std::endl << std::flush;
+}
+
+
+/**
+ * @brief ImageWriter::run
+ */
+
+
+void ImageWriter::run()
+{
+    vector<int> p;
+    p.push_back(CV_IMWRITE_JPEG_QUALITY);
+    p.push_back(95); // compression factor
+
+    isRunning = 1;
+
+    while(isRunning)  {
+        ImageItem img;
+        imageQueue->popWait(img);
+       // int left = imageQueue->size();
+
+        if (0){
+            if (img.resize_type == 0 || (img.new_size.width == 0 && img.new_size.height == 0)){
+                imwrite(img.filename.toStdString(), img.image, p);
+            }else{
+                cv::Mat image_ = img_resize(img.image, img.new_size, img.resize_type);
+                imwrite(img.filename.toStdString(), image_, p);
+            }
+        }else{
+
+            // Output optical flow
+            Mat imgX(img.flow_x.size(),CV_8UC1);
+            Mat imgY(img.flow_y.size(),CV_8UC1);
+
+            convertFlowToImage(img.flow_x, img.flow_y, imgX, imgY, -img.bound, img.bound);
+
+
+            if (img.createCompactFlowImage){
+                // Write out combined flow filed as RGB img
+                int scale = 16;
+
+//                cv::Mat mag = cv::Mat(xoff.rows, xoff.cols, CV_8UC1, cv::Scalar(128));
+//                magf.convertTo(mag, CV_8UC1, 127.0, 128);
+//                cv::minMaxLoc(mag, &minval, &maxval);
+
+                cv::Mat magf;
+                cv::magnitude(img.flow_x, img.flow_y, magf);
+
+                magf = magf*scale+128;
+
+                cv::Mat flow_x_s = img.flow_x*scale+128;
+                cv::Mat flow_y_s = img.flow_y*scale+128;
+
+                cv::Mat mag, xof, yof;
+                magf.convertTo(mag, CV_8UC1, 1, 0);
+                flow_x_s.convertTo(xof, CV_8UC1, 1, 0);
+                flow_y_s.convertTo(yof, CV_8UC1, 1, 0);
+
+                std::vector<cv::Mat> channels;
+                channels.push_back(mag);
+                channels.push_back(yof);
+                channels.push_back(xof);
+
+                cv::Mat out;
+                cv::merge(channels, out);
+
+//                if (threaded_imgwrite){
+//                    ImageItem ii;
+//                    ii.filename = flowFileFull;
+//                    ii.new_size = cv::Size(0,0);
+//                    ii.resize_type = 0;
+//                    ii.image = out;
+//                    imageQueue->push(ii);
+//                }else{
+//                    cv::imwrite(flowFileFull.toStdString(), out, p);
+//                }
+
+
+                //std::cout << flowFileFull.toStdString().c_str() << std::endl << std::flush;
+            }
+
+
+            if (1){
+                    Mat imgX_, imgY_, image_;
+
+                    imgX_ = img_resize(imgX, img.new_size, img.resize_type);
+                    imgY_ = img_resize(imgY, img.new_size, img.resize_type);
+                    image_ = img_resize(img.image, img.new_size, img.resize_type);
+
+                    imwrite(img.filename_flowx.toStdString(), imgX_, p);
+                    imwrite(img.filename_flowy.toStdString(), imgY_, p);
+                    imwrite(img.filename.toStdString(), image_, p);
+
+            }
+
+
+        }
+    }
+
+}
+
+void ImageWriter::finish()
+{
+    isRunning = 0;
 }

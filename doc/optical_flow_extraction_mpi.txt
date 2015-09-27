@@ -1,0 +1,14 @@
+
+= Most likely the flowMaker for different hosts will be compiled against
+different version of CUDA
+
+= Make sure the OpenCV is build agains the correct CUDA version
+
+= Make sure the MPI is not built with the CUDA support
+
+= Make sure the DAR_ROOT dir is NFS shared with all hosts and mapped 
+under the same path name
+
+= Edit and run_flowMaker_mpi.sh script on the host
+
+

@@ -21,7 +21,7 @@ app_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 sys.path.insert(0, dar_root + '/python')
 import caffe
 
-# import cv2
+import cv2
 
 
 class VideoActionDetector(object):
@@ -176,6 +176,7 @@ class VideoActionDetector(object):
         # Get filenames for the OF frame stack starting with frame_id
         imgBatch = []
         for stack_frame in range(1, (channels/3)+1):
+            # print 'image_{:0>4d}'.format(frame_id+stack_frame)+'.jpg'
             imageFile = os.path.join(path, 'image_{:0>4d}'.format(frame_id+stack_frame)+'.jpg')
             imgBatch.append(imageFile)
 
@@ -331,6 +332,10 @@ class VideoActionDetector(object):
 
     #@profile
     def detect_temporal(self, device_id):
+        out_filename = os.path.join(self.rgbflow_path)+'/temporal.txt'
+        if os.path.isfile(out_filename):
+            print 'Already exists: ',out_filename
+            return
 
         caffe.set_mode_gpu()
         caffe.set_device(device_id)
@@ -352,6 +357,7 @@ class VideoActionDetector(object):
         data_shape = self.flow_net.blobs['data'].data.shape
         self.flow_transformer = self.configureTransformer(mean_image, data_shape, False)
 
+        self.classes_temporal = []
         frame_id = 0
         while True:
 
@@ -386,7 +392,7 @@ class VideoActionDetector(object):
                 id = s*augmented_size
                 classAvg = np.sum(classes[id:id+augmented_size, :], 0)/augmented_size
                 # self.showResult(classes[id:id+augmented_size, :] )
-                self.showResult(classAvg)
+                # self.showResult(classAvg)
 
                 if self.classes_temporal == []:
                     self.classes_temporal = classAvg.copy()
@@ -394,7 +400,7 @@ class VideoActionDetector(object):
                     self.classes_temporal = np.vstack([self.classes_temporal, classAvg])
 
 
-            print (frame_id*1.0/30.0), ' FLOW frame: ',frame_id,'  ',
+            print 'FLOW frame: ',frame_id,'  [',(frame_id*1.0/30.0), ']  ',
             self.showResult(classes)
 
 
@@ -407,12 +413,17 @@ class VideoActionDetector(object):
 
 
         [path, filename] = os.path.split(self.rgbflow_path)
-        out_filename = os.path.join(self.rgbflow_path)+'/temporal.txt'
         self.save_result(self.classes_temporal, out_filename)
 
 
     #@profile
     def detect_spatial(self, device_id):
+
+        out_filename = os.path.join(self.rgbflow_path)+'/spatial.txt'
+        if os.path.isfile(out_filename):
+            print 'Already exists: ',out_filename
+            return
+
         caffe.set_mode_gpu()
         caffe.set_device(device_id)
 
@@ -433,7 +444,7 @@ class VideoActionDetector(object):
         data_shape = self.rgb_net.blobs['data'].data.shape
         self.rgb_transformer = self.configureTransformer(mean_image, data_shape, True)
 
-        frame_classes = []
+        self.classes_spatial = []
         frame_id = 0
         while True:
 
@@ -479,7 +490,7 @@ class VideoActionDetector(object):
 
             print 'RGB frame: ',frame_id,'  ',
             self.showResult(classAvg)
-
+            pass
 
             # if frame_id > 1000:
             #     break
@@ -490,7 +501,6 @@ class VideoActionDetector(object):
 
 
         [path, filename] = os.path.split(self.rgbflow_path)
-        out_filename = os.path.join(self.rgbflow_path)+'/spatial.txt'
         self.save_result(self.classes_spatial, out_filename)
 
         return
@@ -642,11 +652,12 @@ if __name__ == "__main__":
         file = val_list[i]
 
         [file, ext] = os.path.splitext(file)
+        # if file == "thumos15_video_validation_0001630":
+        #     continue
 
         video.set_video_name(file)
-        #video.anotate()
 
-        print 'Processing: type=temporal video=',file
+        print 'Processing: type=temporal video=', file
 
         start = time.time()
         if sys.argv[1] == 't':

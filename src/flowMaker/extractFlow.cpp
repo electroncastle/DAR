@@ -151,7 +151,7 @@ void run()
             devs = cv::cuda::getCudaEnabledDeviceCount();
             std::cout << "** NO MPI" << std::endl;
             std::cout << "GPU CUDA devices: " << devs << std::endl;
-            devs = 1;
+            //devs = 1;
 
             for (int i=0; i<devs; i++){
                 im[i] = new ImageProcessor();
@@ -165,24 +165,25 @@ void run()
 
         // Start the main process
         int maxClasses = jobs->size();// /2;
-        maxClasses = 3;
+        // maxClasses = 6;
         for (int i=0; i<maxClasses; i++){
 
             JobItem *job = jobs->at(i);
             QString filename = job->filename;
-            std::cout << "  " << filename.toStdString()  << std::endl << std::flush;
+            std::cout << "* Loading new job  " << filename.toStdString()  << std::endl << std::flush;
 
             // Filter
-          if (0){
-//            QFileInfo fi(filename);
-//            if (fi.baseName() != "v_YoYo_g25_c03"){
-//                continue;
-//            }
+             if (0){
+                QFileInfo fi(filename);
+                if (fi.baseName() != "thumos15_video_validation_0001011"){
+                    continue;
+                }
 
-            if (job->className == "BabyCrawling"){
-                break;
-            }
-          }
+    //            if (job->className == "BabyCrawling"){
+    //                break;
+    //            }
+
+              }
 
 //            if (makeRGBFlow){
 //                makeRFBFlowImage(rgbflow_path, filename);
@@ -192,7 +193,7 @@ void run()
 
             if (numprocs>1){
 
-                qDebug() << "* " << myid << " Waitig for worker...";
+                qDebug() << "* Waitig for worker...";
 
                 //MPI_Request request;
                 MPI_Status status;
@@ -200,25 +201,15 @@ void run()
                 int val=0;
                 MPI_Recv(&val, 1, MPI_INT, source, 100, MPI_COMM_WORLD, &status);
 
-
                 char buffer[256];
                 int count=256;
                 int destination = status.MPI_SOURCE;
-                qDebug()  << "* " << myid << " Serving item: " << i << "/" << maxClasses << " worker: " << destination << " video: " << filename;
+                qDebug()  << "* Serving item: " << i << "/" << maxClasses << " worker: " << destination << " video: " << filename;
                 strcpy(buffer, filename.toLatin1().constData());
                 MPI_Send(buffer, count, MPI_CHAR, destination, 200, MPI_COMM_WORLD);
 
             }else{
                 // NO MPI
-//                    mutex.lock();
-//                    while (clientJobs->size() > 4){
-//                        mutex.unlock();
-//                        QThread::msleep(200);
-//                        mutex.lock();
-//                    }
-//                    clientJobs->push_back(job);
-//                    mutex.unlock();
-
                // qDebug()  << "* " << myid << " Serving item: " << i << "/" << maxClasses <<  " video: " << filename;
                 clientJobs->pushWait(*job, 5);
             }
@@ -244,7 +235,8 @@ void run()
         ConcurrentQueue<JobItem> *clientJobs = new ConcurrentQueue<JobItem>();
 
         int devs = cv::cuda::getCudaEnabledDeviceCount();
-        std::cout << "SLAVE GPU CUDA devices: " << devs << std::endl;
+        std::cout << "[" <<myid << "] Worker started" << std::endl;
+        std::cout << "[" <<myid << "] SLAVE GPU CUDA devices: " << devs << std::endl;
 
         ImageProcessor *im[4];
 
@@ -253,23 +245,15 @@ void run()
             im[i]->setGPUDevice(i);
             im[i]->setPath(rgbflow_path);
             im[i]->setJobList(clientJobs);
+            im[i]->setMPIId(myid);
             im[i]->start();
         }
 
-        QThread::sleep(2);
+        QThread::sleep(myid);
 
         while (true){
 
-//            mutex.lock();
-//            int len = jobs->size();
-//            mutex.unlock();
-
-//            if (len > 2){
-//                QThread::msleep(100);
-//                continue;
-//            }
-
-
+            // Requesting new job
             qDebug() << "[" <<myid << "] Asking for job";
             int destination = 0;
             int val=0;
@@ -277,23 +261,16 @@ void run()
 
             char buffer[256];
             int count=256;
-           // MPI_Request request;
+
+            // Waiting for new job respose
+            std::cout << "[" << myid << "] Waiting for new job respose" << std::endl << std::flush;
+
             MPI_Status status;
             int source = 0;
             MPI_Recv(buffer, count, MPI_CHAR, source, 200, MPI_COMM_WORLD, &status);
 
             QString filename = QString(buffer);
             qDebug() << "[" << myid << "] Got new job: " << filename;
-            //QThread::sleep(2);
-
-            // Run the job
-
-//            JobItem *job = new JobItem();
-//            job->filename = filename;
-
-//            mutex.lock();
-//            jobs->push_back(job);
-//            mutex.unlock();
 
             JobItem job;
             job.filename = filename;
@@ -383,15 +360,15 @@ void run()
 #endif
 
 int main(int argc, char** argv)
-{
-    int devs = cv::cuda::getCudaEnabledDeviceCount();
-    std::cout << "MAIN = GPU CUDA devices: " << devs << std::endl;
-        
+{       
 #ifdef USE_MPI
     MPI_Init(&argc,&argv);
     MPI_Comm_size(MPI_COMM_WORLD,&numprocs);
     MPI_Comm_rank(MPI_COMM_WORLD,&myid);
 #endif
+
+    int devs = cv::cuda::getCudaEnabledDeviceCount();
+    std::cout << myid << " =  GPU CUDA devices: " << devs << std::endl;
 
     QCoreApplication a(argc, argv);
     run();

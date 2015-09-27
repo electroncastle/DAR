@@ -120,6 +120,72 @@ public:
     int label;
 };
 
+
+class ImageItem
+{
+public:
+    void set(cv::Mat image, QString filename, cv::Size new_size=cv::Size(0,0), int resize_type=0){
+        ImageItem::image = image;
+        ImageItem::filename = filename;
+        ImageItem::new_size  = new_size;
+        ImageItem::resize_type = resize_type;
+    }
+
+    void set(cv::Mat flow_x, cv::Mat flow_y, cv::Mat image, int bound,
+             QString filename,
+             QString filename_flowx,
+             QString filename_flowy,
+             cv::Size new_size=cv::Size(0,0), int resize_type=0, bool createCompactFlowImage=false){
+
+        ImageItem::image = image;
+        ImageItem::filename = filename;
+        ImageItem::filename_flowx = filename_flowx;
+        ImageItem::filename_flowy = filename_flowy;
+        ImageItem::new_size  = new_size;
+        ImageItem::resize_type = resize_type;
+
+        ImageItem::flow_x = flow_x;
+        ImageItem::flow_y = flow_y;
+        ImageItem::bound = bound;
+        ImageItem::createCompactFlowImage = createCompactFlowImage;
+    }
+
+    cv::Size new_size;
+    int resize_type;
+    cv::Mat image;
+    QString filename;
+    QString filename_flowx;
+    QString filename_flowy;
+
+    cv::Mat flow_x;
+    cv::Mat flow_y;
+    int bound;
+    bool createCompactFlowImage;
+
+};
+
+class ImageWriter: public QThread
+{
+    Q_OBJECT
+
+ public:
+
+    void setImageQueue(ConcurrentQueue<ImageItem> *imageQueue){
+        ImageWriter::imageQueue = imageQueue;
+    }
+
+protected:
+   virtual void run();
+
+public slots:
+    void finish();
+
+private:
+    ConcurrentQueue<ImageItem> *imageQueue;
+    bool isRunning;
+};
+
+
 class ImageProcessor : public QThread
 {
    Q_OBJECT
@@ -142,10 +208,7 @@ public:
     }
 
     void setJobList(ConcurrentQueue<JobItem> *jobs){
-        //ImageProcessor::jobs = jobs;
-        //ImageProcessor::mutex = mutex;
         ImageProcessor::jobQueue = jobs;
-
     }
 
 
@@ -172,6 +235,9 @@ private:
     int frames;
     bool parseVideoClass;
 
+    bool threaded_imgwrite;
+    ConcurrentQueue<ImageItem> *imageQueue;
+    ImageWriter *imgWriter;
 };
 
 
