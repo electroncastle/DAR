@@ -1,0 +1,624 @@
+name: "FCN"
+layer {
+  name: "data"
+  type: "OFRData"
+  top: "data"
+  top: "label"
+  ofr_data_param {
+    source: "/home/jiri/Lake/DAR/projects/optical_flow_regression/train-of-mpi-large.txt"
+    label_source: "/home/jiri/Lake/DAR/projects/optical_flow_regression/train-of-labels-lmdb-hist-mpi-large"
+
+    #root_path: "/home/jiri/Lake/DAR/share/datasets/THUMOS2015/thumos15_validation-rgbflow/"
+    root_path: "/home/jiri/Lake/DAR/share/datasets/MPI_Sintel/MPI_Sintel-rgb/"
+    batch_size: 8
+#    new_length: 10
+#    num_segments: 1
+#    modality: FLOW
+#    shuffle: true
+  }
+  transform_param{
+#     scale: 0.0039
+#    crop_size: 224
+#    mirror: true
+#    fix_crop: true
+#    center_crop: false
+#     multi_scale: false
+#    max_distort: 1
+#    scale_ratios: [1,.875,.75]
+#    is_flow: true
+
+#     mean_file: "/home/jiri/Lake/DAR/projects/optical_flow_regression/train-of-labels-lmdb/data_mean.binaryproto"
+#    mean_value: [104, 117, 123]
+
+#    mean_value: [101, 109, 111, 101, 109, 111] # BGR BGR 
+
+    # BGR
+    # Caffe usese cv::imread() which reads BGR !!!
+    mean_value: [62.548199072190982, 74.875980697732018, 82.795824585354055, 62.548199072190982, 74.875980697732018, 82.795824585354055]
+
+  }
+
+  label_transform_param{
+#    is_flow: true
+#    mirror: true
+    mean_value: [-1.0]
+    scale: 0.5
+#    crop_size: 32
+#    fix_crop: true
+#    multi_scale: true
+#    scale_ratios: [0.5138]
+#    scale_ratios: [0.0734]
+  }
+
+  include: { phase: TRAIN }
+}
+
+layer {
+  name: "data"
+  type: "OFRData"
+  top: "data"
+  top: "label"
+  ofr_data_param {
+    source: "/home/jiri/Lake/DAR/projects/optical_flow_regression/val-of-mpi-large.txt"
+    label_source: "/home/jiri/Lake/DAR/projects/optical_flow_regression/val-of-labels-lmdb-hist-mpi-large"
+#    root_path: "/home/jiri/Lake/DAR/share/datasets/THUMOS2015/thumos15_validation-rgbflow/"
+    root_path: "/home/jiri/Lake/DAR/share/datasets/MPI_Sintel/MPI_Sintel-rgb/"
+
+    batch_size: 16
+#    new_length: 10
+#    num_segments: 1
+#    modality: FLOW
+    #shuffle: true
+  }
+
+  transform_param{
+#    crop_size: 224
+#    mirror: true
+#    fix_crop: true
+#    center_crop: false
+#     multi_scale: false
+#    max_distort: 1
+#    scale_ratios: [1,.875,.75]
+#    is_flow: true
+
+#     mean_file: "/home/jiri/Lake/DAR/projects/optical_flow_regression/train-of-labels-lmdb/data_mean.binaryproto"
+#    mean_value: [104, 117, 123]
+
+#    mean_value: [101, 109, 111, 101, 109, 111] # BGR BGR ?
+    # BGR
+    # Caffe usese cv::imread() which reads BGR !!!
+    mean_value: [62.548199072190982, 74.875980697732018, 82.795824585354055, 62.548199072190982, 74.875980697732018, 82.795824585354055]
+
+  }
+
+  label_transform_param{
+    mirror: false
+    mean_value: [-1.0]
+    scale: 0.5
+    is_flow: false
+#    crop_size: 32
+#    fix_crop: true
+#    multi_scale: true
+#    scale_ratios: [0.5138]
+#    scale_ratios: [0.0734]
+  }
+
+  include: { phase: TEST }
+}
+
+#------------------------------------------------------
+layer {
+  name: "conv1"
+  type: "Convolution"
+  bottom: "data"
+  top: "conv1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 64
+    pad: 1
+    kernel_size: 3
+    engine: CAFFE
+  }
+}
+layer {
+  name: "relu1"
+  type: "ReLU"
+  bottom: "conv1"
+  top: "conv1"
+}
+layer {
+  name: "conv1_2"
+  type: "Convolution"
+  bottom: "conv1"
+  top: "conv1_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 64
+    pad: 1
+    kernel_size: 3
+    engine: CAFFE
+  }
+}
+layer {
+  name: "relu1_2"
+  type: "ReLU"
+  bottom: "conv1_2"
+  top: "conv1_2"
+}
+layer {
+  name: "pool1"
+  type: "Pooling"
+  bottom: "conv1_2"
+  top: "pool1"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv2_1"
+  type: "Convolution"
+  bottom: "pool1"
+  top: "conv2_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 128
+    pad: 1
+    kernel_size: 3
+    engine: CAFFE
+  }
+}
+layer {
+  name: "relu2_1"
+  type: "ReLU"
+  bottom: "conv2_1"
+  top: "conv2_1"
+}
+layer {
+  name: "conv2_2"
+  type: "Convolution"
+  bottom: "conv2_1"
+  top: "conv2_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 128
+    pad: 1
+    kernel_size: 3
+    engine: CAFFE
+  }
+}
+layer {
+  name: "relu2_2"
+  type: "ReLU"
+  bottom: "conv2_2"
+  top: "conv2_2"
+}
+layer {
+  name: "pool2"
+  type: "Pooling"
+  bottom: "conv2_2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv3_1"
+  type: "Convolution"
+  bottom: "pool2"
+  top: "conv3_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 256
+    pad: 1
+    kernel_size: 3
+    engine: CAFFE
+  }
+}
+layer {
+  name: "relu3_1"
+  type: "ReLU"
+  bottom: "conv3_1"
+  top: "conv3_1"
+}
+layer {
+  name: "conv3_2"
+  type: "Convolution"
+  bottom: "conv3_1"
+  top: "conv3_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 256
+    pad: 1
+    kernel_size: 3
+    engine: CAFFE
+  }
+}
+layer {
+  name: "relu3_2"
+  type: "ReLU"
+  bottom: "conv3_2"
+  top: "conv3_2"
+}
+layer {
+  name: "conv3_3"
+  type: "Convolution"
+  bottom: "conv3_2"
+  top: "conv3_3"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 256
+    pad: 1
+    kernel_size: 3
+    engine: CAFFE
+  }
+}
+layer {
+  name: "relu3_3"
+  type: "ReLU"
+  bottom: "conv3_3"
+  top: "conv3_3"
+}
+layer {
+  name: "pool3"
+  type: "Pooling"
+  bottom: "conv3_3"
+  top: "pool3"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv4_1"
+  type: "Convolution"
+  bottom: "pool3"
+  top: "conv4_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    engine: CAFFE
+  }
+}
+layer {
+  name: "relu4_1"
+  type: "ReLU"
+  bottom: "conv4_1"
+  top: "conv4_1"
+}
+layer {
+  name: "conv4_2"
+  type: "Convolution"
+  bottom: "conv4_1"
+  top: "conv4_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    engine: CAFFE
+  }
+}
+layer {
+  name: "relu4_2"
+  type: "ReLU"
+  bottom: "conv4_2"
+  top: "conv4_2"
+}
+layer {
+  name: "conv4_3"
+  type: "Convolution"
+  bottom: "conv4_2"
+  top: "conv4_3"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    engine: CAFFE
+  }
+}
+layer {
+  name: "relu4_3"
+  type: "ReLU"
+  bottom: "conv4_3"
+  top: "conv4_3"
+}
+layer {
+  name: "pool4"
+  type: "Pooling"
+  bottom: "conv4_3"
+  top: "pool4"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv5_1"
+  type: "Convolution"
+  bottom: "pool4"
+  top: "conv5_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    engine: CAFFE
+  }
+}
+layer {
+  name: "relu5_1"
+  type: "ReLU"
+  bottom: "conv5_1"
+  top: "conv5_1"
+}
+layer {
+  name: "conv5_2"
+  type: "Convolution"
+  bottom: "conv5_1"
+  top: "conv5_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    engine: CAFFE
+  }
+}
+layer {
+  name: "relu5_2"
+  type: "ReLU"
+  bottom: "conv5_2"
+  top: "conv5_2"
+}
+layer {
+  name: "conv5_3"
+  type: "Convolution"
+  bottom: "conv5_2"
+  top: "conv5_3"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    engine: CAFFE
+  }
+}
+layer {
+  name: "relu5_3"
+  type: "ReLU"
+  bottom: "conv5_3"
+  top: "conv5_3"
+}
+layer {
+  name: "pool5"
+  type: "Pooling"
+  bottom: "conv5_3"
+  top: "pool5"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "fc6-conv"
+  type: "Convolution"
+  bottom: "pool5"
+  top: "fc6-conv"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 4096
+    kernel_size: 7
+    engine: CAFFE
+  }
+}
+layer {
+  name: "relu6"
+  type: "ReLU"
+  bottom: "fc6-conv"
+  top: "fc6-conv"
+}
+layer {
+  name: "drop6"
+  type: "Dropout"
+  bottom: "fc6-conv"
+  top: "fc6-conv"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+}
+layer {
+  name: "fc7-conv"
+  type: "Convolution"
+  bottom: "fc6-conv"
+  top: "fc7-conv"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 4096
+    kernel_size: 1
+    engine: CAFFE
+  }
+}
+layer {
+  name: "relu7"
+  type: "ReLU"
+  bottom: "fc7-conv"
+  top: "fc7-conv"
+}
+layer {
+  name: "drop7"
+  type: "Dropout"
+  bottom: "fc7-conv"
+  top: "fc7-conv"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+}
+layer {
+  name: "score59"
+  type: "Convolution"
+  bottom: "fc7-conv"
+  top: "score59"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 65
+    kernel_size: 1
+    engine: CAFFE
+  }
+}
+layer {
+  name: "upscore"
+  type: "Deconvolution"
+  bottom: "score59"
+  top: "upscore"
+  param {
+    lr_mult: 0
+  }
+  convolution_param {
+    num_output: 65
+    bias_term: false
+#    kernel_size: 21
+#    stride: 5
+    kernel_size: 56
+    stride: 1
+  }
+}
+# layer { type: 'Crop' name: 'score' top: 'score'
+#   bottom: 'upscore' bottom: 'data' }
+
+#layer { type: 'SoftmaxWithLoss' name: 'loss' top: 'loss'
+#  bottom: 'score' bottom: 'label'
+#  loss_param { normalize: false }
+#  }
+
+
+#--------------------------------------------------------------------------
+layer {
+  name: "mse"
+  type: "EuclideanLoss"
+  bottom: "upscore"
+  bottom: "label"
+  top: "mse"
+}
+

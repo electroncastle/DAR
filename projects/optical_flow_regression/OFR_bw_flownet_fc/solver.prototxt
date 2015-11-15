@@ -1,0 +1,44 @@
+net: "train_val_fast.prototxt"
+test_iter: 100
+test_interval: 500
+
+# Initialized without fc layers
+# pretrained for 140k iter
+
+# ADAM from 60000
+#base_lr: 1e-5
+
+# SGD
+base_lr: 1e-10
+
+
+# Used wtih NESTEROV from 60000
+# Not good
+#base_lr: 1e-9
+
+
+lr_policy: "step"
+gamma: 0.05
+stepsize: 20000
+display: 20
+max_iter: 5000000
+momentum: 0.99
+weight_decay: 0.0005
+#weight_decay: 0.000001
+snapshot: 1000
+snapshot_prefix: "snapshot"
+iter_size: 1
+#device_id: [0]
+test_initialization: true
+#average_loss: 61
+
+#solver_mode: CPU
+solver_mode: GPU
+#solver_type: ADAGRAD
+
+#solver_type: NESTEROV
+
+#solver_type: ADAM
+#delta: 1e-4
+momentum2: 0.999
+

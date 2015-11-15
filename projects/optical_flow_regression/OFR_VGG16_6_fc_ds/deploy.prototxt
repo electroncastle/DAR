@@ -1,0 +1,317 @@
+name: "deploy"
+input: "data"
+input_dim: 1
+input_dim: 6
+input_dim: 224
+input_dim: 224
+
+#-----------------------------------------
+# From VGG16
+#-----------------------------------------
+layer {
+  name: "conv1"
+  type: "Convolution"
+  bottom: "data"
+  top: "conv1"
+  param {
+    lr_mult: 0
+    decay_mult: 0
+  }
+  param {
+    lr_mult: 0
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 64
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu1"
+  type: "ReLU"
+  bottom: "conv1"
+  top: "conv1"
+}
+layer {
+  name: "conv1_2"
+  type: "Convolution"
+  bottom: "conv1"
+  top: "conv1_2"
+  param {
+    lr_mult: 0.5
+    decay_mult: 0
+  }
+  param {
+    lr_mult: 1
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 64
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu1_2"
+  type: "ReLU"
+  bottom: "conv1_2"
+  top: "conv1_2"
+}
+
+#-----------------------------------------
+# Clean
+#-----------------------------------------
+layer {
+  name: "conv2_1"
+  type: "Convolution"
+  bottom: "conv1_2"
+  top: "conv2_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 128
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu2_1"
+  type: "ReLU"
+  bottom: "conv2_1"
+  top: "conv2_1"
+}
+
+
+#-----------------------------------------
+layer {
+  name: "conv3_1"
+  type: "Convolution"
+  bottom: "conv2_1"
+  top: "conv3_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 256
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu3_1"
+  type: "ReLU"
+  bottom: "conv3_1"
+  top: "conv3_1"
+}
+
+#-----------------------------------------
+layer {
+  name: "conv4_1"
+  type: "Convolution"
+  bottom: "conv3_1"
+  top: "conv4_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu4_1"
+  type: "ReLU"
+  bottom: "conv4_1"
+  top: "conv4_1"
+}
+
+
+#-----------------------------------------------
+layer {
+  name: "fc6-conv"
+  type: "Convolution"
+  bottom: "conv4_1"
+  top: "fc6-conv"
+
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+
+  convolution_param {
+    num_output: 256
+    kernel_size: 3
+    pad: 1
+    stride: 1
+    bias_filler {
+      type: "constant"
+      value: 0.0001
+    }
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+
+layer {
+  name: "relu6"
+  type: "ReLU"
+  bottom: "fc6-conv"
+  top: "fc6-conv"
+}
+
+#layer {
+#  name: "drop6"
+#  type: "Dropout"
+#  bottom: "fc6-conv"
+#  top: "fc6-conv"
+#  dropout_param {
+#    dropout_ratio: 0.3
+#  }
+#}
+
+#-----------------------------------------------
+layer {
+  name: "fc7-conv"
+  type: "Convolution"
+  bottom: "fc6-conv"
+  top: "fc7-conv"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+
+  convolution_param {
+    num_output: 128
+    kernel_size: 1
+    bias_filler {
+      type: "constant"
+      value: 0.0001
+    }
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu7"
+  type: "ReLU"
+  bottom: "fc7-conv"
+  top: "fc7-conv"
+}
+
+#-----------------------------------------------
+layer {
+  name: "fc8-conv"
+  type: "Convolution"
+  bottom: "fc7-conv"
+  top: "fc8-conv"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+
+  convolution_param {
+    num_output: 64
+    kernel_size: 1
+    bias_filler {
+      type: "constant"
+      value: 0.0001
+    }
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu8"
+  type: "ReLU"
+  bottom: "fc8-conv"
+  top: "fc8-conv"
+}
+
+#layer {
+#  name: "drop7"
+#  type: "Dropout"
+#  bottom: "fc7-conv"
+#  top: "fc7-conv"
+#  dropout_param {
+#    dropout_ratio: 0.3
+#  }
+#}
+
+#-----------------------------------------------
+layer {
+  name: "fc9-conv"
+  type: "Convolution"
+  bottom: "fc8-conv"
+  top: "fc9-conv"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+
+  convolution_param {
+    num_output: 2
+    kernel_size: 1
+    pad: 0
+
+    bias_filler {
+      type: "constant"
+      value: 0.0001
+    }
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+

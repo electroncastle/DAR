@@ -1,0 +1,441 @@
+name: "train_val"
+layer {
+  name: "data"
+  type: "OFRData"
+  top: "data"
+  top: "label"
+  ofr_data_param {
+    source: "/home/jiri/Lake/DAR/projects/optical_flow_regression/train-of-mpi-large.txt"
+    label_source: "/home/jiri/Lake/DAR/projects/optical_flow_regression/train-of-labels-lmdb-hist-mpi-large"
+
+    #root_path: "/home/jiri/Lake/DAR/share/datasets/THUMOS2015/thumos15_validation-rgbflow/"
+    root_path: "/home/jiri/Lake/DAR/share/datasets/MPI_Sintel/MPI_Sintel-rgb/"
+    batch_size: 2
+#    new_length: 10
+#    num_segments: 1
+#    modality: FLOW
+#    shuffle: true
+  }
+  transform_param{
+#     scale: 0.0039
+#    crop_size: 224
+#    mirror: true
+#    fix_crop: true
+#    center_crop: false
+#     multi_scale: false
+#    max_distort: 1
+#    scale_ratios: [1,.875,.75]
+#    is_flow: true
+
+#     mean_file: "/home/jiri/Lake/DAR/projects/optical_flow_regression/train-of-labels-lmdb/data_mean.binaryproto"
+#    mean_value: [104, 117, 123]
+
+#    mean_value: [101, 109, 111, 101, 109, 111] # BGR BGR 
+
+    # BGR
+    # Caffe usese cv::imread() which reads BGR !!!
+    mean_value: [62.548199072190982, 74.875980697732018, 82.795824585354055, 62.548199072190982, 74.875980697732018, 82.795824585354055]
+
+  }
+
+  label_transform_param{
+#    is_flow: true
+#    mirror: true
+#     mean_value: [-1.0]
+#     scale: 0.5
+#    crop_size: 32
+#    fix_crop: true
+#    multi_scale: true
+#    scale_ratios: [0.5138]
+#    scale_ratios: [0.0734]
+  }
+
+  include: { phase: TRAIN }
+}
+
+layer {
+  name: "data"
+  type: "OFRData"
+  top: "data"
+  top: "label"
+  ofr_data_param {
+    source: "/home/jiri/Lake/DAR/projects/optical_flow_regression/val-of-mpi-large.txt"
+    label_source: "/home/jiri/Lake/DAR/projects/optical_flow_regression/val-of-labels-lmdb-hist-mpi-large"
+#    root_path: "/home/jiri/Lake/DAR/share/datasets/THUMOS2015/thumos15_validation-rgbflow/"
+    root_path: "/home/jiri/Lake/DAR/share/datasets/MPI_Sintel/MPI_Sintel-rgb/"
+
+    batch_size: 1
+#    new_length: 10
+#    num_segments: 1
+#    modality: FLOW
+    #shuffle: true
+  }
+
+  transform_param{
+#    crop_size: 224
+#    mirror: true
+#    fix_crop: true
+#    center_crop: false
+#     multi_scale: false
+#    max_distort: 1
+#    scale_ratios: [1,.875,.75]
+#    is_flow: true
+
+#     mean_file: "/home/jiri/Lake/DAR/projects/optical_flow_regression/train-of-labels-lmdb/data_mean.binaryproto"
+#    mean_value: [104, 117, 123]
+
+#    mean_value: [101, 109, 111, 101, 109, 111] # BGR BGR ?
+    # BGR
+    # Caffe usese cv::imread() which reads BGR !!!
+    mean_value: [62.548199072190982, 74.875980697732018, 82.795824585354055, 62.548199072190982, 74.875980697732018, 82.795824585354055]
+
+  }
+
+  label_transform_param{
+    mirror: false
+#     mean_value: [-1.0]
+#     scale: 0.5
+    is_flow: false
+#    crop_size: 32
+#    fix_crop: true
+#    multi_scale: true
+#    scale_ratios: [0.5138]
+#    scale_ratios: [0.0734]
+  }
+
+  include: { phase: TEST }
+}
+
+#-----------------------------------------
+# From VGG16
+#-----------------------------------------
+layer {
+  name: "conv1"
+  type: "Convolution"
+  bottom: "data"
+  top: "conv1"
+  param {
+    lr_mult: 0
+    decay_mult: 0
+  }
+  param {
+    lr_mult: 0
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 128
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu1"
+  type: "ReLU"
+  bottom: "conv1"
+  top: "conv1"
+}
+layer {
+  name: "conv1_2"
+  type: "Convolution"
+  bottom: "conv1"
+  top: "conv1_2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 128
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu1_2"
+  type: "ReLU"
+  bottom: "conv1_2"
+  top: "conv1_2"
+}
+
+#-----------------------------------------
+# Clean
+#-----------------------------------------
+layer {
+  name: "conv2_1"
+  type: "Convolution"
+  bottom: "conv1_2"
+  top: "conv2_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 128
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu2_1"
+  type: "ReLU"
+  bottom: "conv2_1"
+  top: "conv2_1"
+}
+
+
+#-----------------------------------------
+layer {
+  name: "conv3_1"
+  type: "Convolution"
+  bottom: "conv2_1"
+  top: "conv3_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 256
+    pad: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu3_1"
+  type: "ReLU"
+  bottom: "conv3_1"
+  top: "conv3_1"
+}
+
+#-----------------------------------------
+layer {
+  name: "conv4_1"
+  type: "Convolution"
+  bottom: "conv3_1"
+  top: "conv4_1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu4_1"
+  type: "ReLU"
+  bottom: "conv4_1"
+  top: "conv4_1"
+}
+
+
+#-----------------------------------------------
+layer {
+  name: "fc6-conv"
+  type: "Convolution"
+  bottom: "conv4_1"
+  top: "fc6-conv"
+
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+
+  convolution_param {
+    num_output: 1024
+    kernel_size: 7
+    pad: 3
+    stride: 2
+    bias_filler {
+      type: "constant"
+      value: 0.0001
+    }
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+
+layer {
+  name: "relu6"
+  type: "ReLU"
+  bottom: "fc6-conv"
+  top: "fc6-conv"
+}
+
+#layer {
+#  name: "drop6"
+#  type: "Dropout"
+#  bottom: "fc6-conv"
+#  top: "fc6-conv"
+#  dropout_param {
+#    dropout_ratio: 0.3
+#  }
+#}
+
+#-----------------------------------------------
+layer {
+  name: "fc7-conv"
+  type: "Convolution"
+  bottom: "fc6-conv"
+  top: "fc7-conv"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+
+  convolution_param {
+    num_output: 4096
+    kernel_size: 1
+
+    bias_filler {
+      type: "constant"
+      value: 0.0001
+    }
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu7"
+  type: "ReLU"
+  bottom: "fc7-conv"
+  top: "fc7-conv"
+}
+
+layer {
+  name: "drop7"
+  type: "Dropout"
+  bottom: "fc7-conv"
+  top: "fc7-conv"
+  dropout_param {
+    dropout_ratio: 0.3
+  }
+}
+
+#-----------------------------------------------
+layer {
+  name: "fc8-conv"
+  type: "Convolution"
+  bottom: "fc7-conv"
+  top: "fc8-conv"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+
+  convolution_param {
+    num_output: 4096
+    kernel_size: 1
+
+    bias_filler {
+      type: "constant"
+      value: 0.0001
+    }
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "relu8"
+  type: "ReLU"
+  bottom: "fc8-conv"
+  top: "fc8-conv"
+}
+
+layer {
+  name: "drop8"
+  type: "Dropout"
+  bottom: "fc8-conv"
+  top: "fc8-conv"
+  dropout_param {
+    dropout_ratio: 0.3
+  }
+}
+
+#-----------------------------------------------
+layer {
+  name: "fc9-conv"
+  type: "Convolution"
+  bottom: "fc8-conv"
+  top: "fc9-conv"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+
+  convolution_param {
+    num_output: 65
+    kernel_size: 1
+    pad: 0
+
+    bias_filler {
+      type: "constant"
+      value: 0.0001
+    }
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+
+#--------------------------------------------------------------------------
+layer {
+  name: "mse"
+  type: "EuclideanLoss"
+  bottom: "fc9-conv"
+  bottom: "label"
+  top: "mse"
+#  include: { phase: TEST }
+}
+
