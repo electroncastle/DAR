@@ -1,499 +1,352 @@
-name: "Optical_Flow_Regression"
+name: "Optical_Flow_Regression_VGG_CNN_M_2048"
 layer {
-  name: "ofr-data"
-  type: "Data"
+  name: "data"
+  type: "OFRData"
   top: "data"
-  #top: "label_local"
-  include {
-    phase: TRAIN
-  }
-#  transform_param {
-#    mean_file: "examples/cifar10/mean.binaryproto"
-#  }
-  data_param {
-    source: "train-of-data-lmdb"
-    batch_size: 256
-    backend: LMDB
-  }
-}
-
-layer {
-  name: "ofr-labels"
-  type: "Data"
   top: "label"
-  #top: "label_local"
-  include {
-    phase: TRAIN
+  ofr_data_param {
+    source: "/home/jiri/Lake/DAR/projects/optical_flow_regression/train-of-mpi-large.txt"
+    label_source: "/home/jiri/Lake/DAR/projects/optical_flow_regression/train-of-labels-lmdb-mpi-large"
+#    root_path: "/home/jiri/Lake/DAR/share/datasets/THUMOS2015/thumos15_validation-rgbflow/"
+    root_path: "/home/jiri/Lake/DAR/share/datasets/MPI_Sintel/MPI_Sintel-rgb/"
+
+    batch_size: 128
+#    new_length: 10
+#    num_segments: 1
+#    modality: FLOW
+#    shuffle: true
   }
-#  transform_param {
-#    mean_file: "examples/cifar10/mean.binaryproto"
-#  }
-  data_param {
-    source: "train-of-labels-lmdb"
-    batch_size: 256
-    backend: LMDB
+  transform_param{
+#     scale: 0.0039
+    crop_size: 224
+    mirror: true
+    fix_crop: true
+    center_crop: true
+     multi_scale: false
+#    max_distort: 1
+#    scale_ratios: [1,.875,.75]
+#    is_flow: true
+
+#     mean_file: "/home/jiri/Lake/DAR/projects/optical_flow_regression/train-of-labels-lmdb/data_mean.binaryproto"
+#    mean_value: [104, 117, 123]
+
+#    mean_value: [101.0 109.0 111.0, 101.0, 109.0, 111.0 ] # BGR BGR ?
+
+    # RGB	
+#    mean_value: [82.795824585354055, 74.875980697732018, 62.548199072190982, 82.795824585354055, 74.875980697732018, 62.548199072190982] 
+
+    # BGR
+    # Caffe usese cv::imread() which reads BGR !!!
+    mean_value: [62.548199072190982, 74.875980697732018, 82.795824585354055, 62.548199072190982, 74.875980697732018, 82.795824585354055]
   }
+
+  label_transform_param{
+     scale: 0.5
+#    crop_size: 0
+    mirror: true
+#    fix_crop: true
+#    multi_scale: true
+#    max_distort: 1
+#    scale_ratios: [1,.875,.75]
+    is_flow: true
+#    mean_value: [128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
+    mean_value: [-1.0]
+  }
+
+  include: { phase: TRAIN }
 }
 
-
-
 layer {
-  name: "ofr-data"
-  type: "Data"
+  name: "data"
+  type: "OFRData"
   top: "data"
-#  top: "label"
-  include {
-    phase: TEST
-  }
-#  transform_param {
-#    mean_file: "examples/cifar10/mean.binaryproto"
-#  }
-  data_param {
-    source: "val-of-data-lmdb"
-    batch_size: 256
-    backend: LMDB
-  }
-}
-
-layer {
-  name: "ofr-labels"
-  type: "Data"
-#  top: "data"
   top: "label"
-  include {
-    phase: TEST
+  ofr_data_param {
+    source: "/home/jiri/Lake/DAR/projects/optical_flow_regression/val-of-mpi-large.txt"
+    label_source: "/home/jiri/Lake/DAR/projects/optical_flow_regression/val-of-labels-lmdb-mpi-large"
+#    root_path: "/home/jiri/Lake/DAR/share/datasets/THUMOS2015/thumos15_validation-rgbflow/"
+    root_path: "/home/jiri/Lake/DAR/share/datasets/MPI_Sintel/MPI_Sintel-rgb/"
+
+    batch_size: 32
+#    new_length: 10
+#    num_segments: 1
+#    modality: FLOW
+    #shuffle: true
   }
-#  transform_param {
-#    mean_file: "examples/cifar10/mean.binaryproto"
-#  }
-  data_param {
-    source: "val-of-labels-lmdb"
-    batch_size: 256
-    backend: LMDB
+
+  transform_param{
+    crop_size: 224
+    mirror: false
+    fix_crop: true
+    center_crop: true
+     multi_scale: false
+#    max_distort: 1
+#    scale_ratios: [1,.875,.75]
+#    is_flow: true
+
+#     mean_file: "/home/jiri/Lake/DAR/projects/optical_flow_regression/train-of-labels-lmdb/data_mean.binaryproto"
+#    mean_value: [104, 117, 123]
+
+#    mean_value: [101, 109, 111, 101, 109, 111] # BGR BGR ?
+
+    # RGB	
+#    mean_value: [82.795824585354055, 74.875980697732018, 62.548199072190982, 82.795824585354055, 74.875980697732018, 62.548199072190982] 
+
+    # BGR
+    mean_value: [62.548199072190982, 74.875980697732018, 82.795824585354055, 62.548199072190982, 74.875980697732018, 82.795824585354055]
   }
+
+  label_transform_param{
+    scale: 0.5
+    mean_value: [-1.0]
+  }
+
+  include: { phase: TEST }
 }
 
-
+#--------------------------------------------------------------------------
 layer {
-  name: "conv1_1"
+  name: "conv1"
   type: "Convolution"
   bottom: "data"
-  top: "conv1_1"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
+  top: "conv1"
+
+  # learning rate and decay multipliers for the filters
+  param { lr_mult: 1 decay_mult: 1 }
+  # learning rate and decay multipliers for the biases
+  param { lr_mult: 2 decay_mult: 0 }
+
   convolution_param {
-    num_output: 64
-    pad: 1
-    kernel_size: 3
+    num_output: 96
+    pad: 0
+    kernel_size: 7
+    stride: 2
     weight_filler {
       type: "xavier"
     }
-  }
-}
-layer {
-  name: "relu1_1"
-  type: "ReLU"
-  bottom: "conv1_1"
-  top: "conv1_1"
-}
-layer {
-  name: "conv1_2"
-  type: "Convolution"
-  bottom: "conv1_1"
-  top: "conv1_2"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  convolution_param {
-    num_output: 64
-    pad: 1
-    kernel_size: 3
-    weight_filler {
-      type: "xavier"
+    bias_filler {
+      type: "constant" # initialize the biases to zero (0)
+      value: 0.001
     }
   }
 }
+
 layer {
-  name: "relu1_2"
+  name: "relu1"
   type: "ReLU"
-  bottom: "conv1_2"
-  top: "conv1_2"
+  bottom: "conv1"
+  top: "conv1"
 }
+
+layer {
+  name: "norm1"
+  type: "LRN"
+  bottom: "conv1"
+  top: "norm1"
+  lrn_param {
+    norm_region: WITHIN_CHANNEL
+    local_size: 5
+    alpha: 0.0005
+    beta: 0.75
+  }
+}
+
 layer {
   name: "pool1"
   type: "Pooling"
-  bottom: "conv1_2"
+  bottom: "norm1"
   top: "pool1"
   pooling_param {
     pool: MAX
-    kernel_size: 2
-    stride: 2
-  }
-}
-layer {
-  name: "conv2_1"
-  type: "Convolution"
-  bottom: "pool1"
-  top: "conv2_1"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  convolution_param {
-    num_output: 128
-    pad: 1
     kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "relu2_1"
-  type: "ReLU"
-  bottom: "conv2_1"
-  top: "conv2_1"
-}
-layer {
-  name: "conv2_2"
-  type: "Convolution"
-  bottom: "conv2_1"
-  top: "conv2_2"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  convolution_param {
-    num_output: 128
-    pad: 1
-    kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "relu2_2"
-  type: "ReLU"
-  bottom: "conv2_2"
-  top: "conv2_2"
-}
-layer {
-  name: "pool2"
-  type: "Pooling"
-  bottom: "conv2_2"
-  top: "pool2"
-  pooling_param {
-    pool: MAX
-    kernel_size: 2
-    stride: 2
-  }
-}
-layer {
-  name: "conv3_1"
-  type: "Convolution"
-  bottom: "pool2"
-  top: "conv3_1"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  convolution_param {
-    num_output: 256
-    pad: 1
-    kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "relu3_1"
-  type: "ReLU"
-  bottom: "conv3_1"
-  top: "conv3_1"
-}
-layer {
-  name: "conv3_2"
-  type: "Convolution"
-  bottom: "conv3_1"
-  top: "conv3_2"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  convolution_param {
-    num_output: 256
-    pad: 1
-    kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "relu3_2"
-  type: "ReLU"
-  bottom: "conv3_2"
-  top: "conv3_2"
-}
-layer {
-  name: "conv3_3"
-  type: "Convolution"
-  bottom: "conv3_2"
-  top: "conv3_3"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  convolution_param {
-    num_output: 256
-    pad: 1
-    kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "relu3_3"
-  type: "ReLU"
-  bottom: "conv3_3"
-  top: "conv3_3"
-}
-layer {
-  name: "pool3"
-  type: "Pooling"
-  bottom: "conv3_3"
-  top: "pool3"
-  pooling_param {
-    pool: MAX
-    kernel_size: 2
-    stride: 2
-  }
-}
-layer {
-  name: "conv4_1"
-  type: "Convolution"
-  bottom: "pool3"
-  top: "conv4_1"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  convolution_param {
-    num_output: 512
-    pad: 1
-    kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "relu4_1"
-  type: "ReLU"
-  bottom: "conv4_1"
-  top: "conv4_1"
-}
-layer {
-  name: "conv4_2"
-  type: "Convolution"
-  bottom: "conv4_1"
-  top: "conv4_2"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  convolution_param {
-    num_output: 512
-    pad: 1
-    kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "relu4_2"
-  type: "ReLU"
-  bottom: "conv4_2"
-  top: "conv4_2"
-}
-layer {
-  name: "conv4_3"
-  type: "Convolution"
-  bottom: "conv4_2"
-  top: "conv4_3"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  convolution_param {
-    num_output: 512
-    pad: 1
-    kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "relu4_3"
-  type: "ReLU"
-  bottom: "conv4_3"
-  top: "conv4_3"
-}
-layer {
-  name: "pool4"
-  type: "Pooling"
-  bottom: "conv4_3"
-  top: "pool4"
-  pooling_param {
-    pool: MAX
-    kernel_size: 2
-    stride: 2
-  }
-}
-layer {
-  name: "conv5_1"
-  type: "Convolution"
-  bottom: "pool4"
-  top: "conv5_1"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  convolution_param {
-    num_output: 512
-    pad: 1
-    kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "relu5_1"
-  type: "ReLU"
-  bottom: "conv5_1"
-  top: "conv5_1"
-}
-layer {
-  name: "conv5_2"
-  type: "Convolution"
-  bottom: "conv5_1"
-  top: "conv5_2"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  convolution_param {
-    num_output: 512
-    pad: 1
-    kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "relu5_2"
-  type: "ReLU"
-  bottom: "conv5_2"
-  top: "conv5_2"
-}
-layer {
-  name: "conv5_3"
-  type: "Convolution"
-  bottom: "conv5_2"
-  top: "conv5_3"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  convolution_param {
-    num_output: 512
-    pad: 1
-    kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "relu5_3"
-  type: "ReLU"
-  bottom: "conv5_3"
-  top: "conv5_3"
-}
-layer {
-  name: "pool5"
-  type: "Pooling"
-  bottom: "conv5_3"
-  top: "pool5"
-  pooling_param {
-    pool: MAX
-    kernel_size: 2
     stride: 2
   }
 }
 
+#--------------------------------------------------------------------------
+layer {
+  name: "conv2"
+  type: "Convolution"
+  bottom: "pool1"
+  top: "conv2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 256
+    pad: 1
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant" # initialize the biases to zero (0)
+      value: 0.001
+    }
+
+  }
+}
+
+layer {
+  name: "relu2"
+  type: "ReLU"
+  bottom: "conv2"
+  top: "conv2"
+}
+
+layer {
+  bottom: "conv2"
+  top: "norm2"
+  name: "norm2"
+  type: "LRN"
+  lrn_param {
+    norm_region: WITHIN_CHANNEL
+    local_size: 5
+    alpha: 0.0005
+    beta: 0.75
+    k: 2
+  }
+}
+
+layer {
+  name: "pool2"
+  type: "Pooling"
+  bottom: "norm2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+}
+
+#--------------------------------------------------------------------------
+layer {
+  name: "conv3"
+  type: "Convolution"
+  bottom: "pool2"
+  top: "conv3"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    stride: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant" # initialize the biases to zero (0)
+      value: 0.001
+    }
+
+  }
+}
+layer {
+  name: "relu3"
+  type: "ReLU"
+  bottom: "conv3"
+  top: "conv3"
+}
+
+#--------------------------------------------------------------------------
+layer {
+  name: "conv4"
+  type: "Convolution"
+  bottom: "conv3"
+  top: "conv4"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant" # initialize the biases to zero (0)
+      value: 0.001
+    }
+
+  }
+}
+layer {
+  name: "relu4"
+  type: "ReLU"
+  bottom: "conv4"
+  top: "conv4"
+}
+
+#--------------------------------------------------------------------------
+layer {
+  name: "conv5"
+  type: "Convolution"
+  bottom: "conv4"
+  top: "conv5"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 512
+    pad: 1
+    stride: 1
+    kernel_size: 3
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant" # initialize the biases to zero (0)
+      value: 0.001
+    }
+
+  }
+}
+layer {
+  name: "relu5"
+  type: "ReLU"
+  bottom: "conv5"
+  top: "conv5"
+}
+
+layer {
+  name: "pool5"
+  type: "Pooling"
+  bottom: "conv5"
+  top: "pool5"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+}
+
+#--------------------------------------------------------------------------
 layer {
   name: "fc6"
   type: "InnerProduct"
@@ -512,23 +365,33 @@ layer {
     weight_filler {
       type: "xavier"
     }
+    bias_filler {
+      type: "constant" # initialize the biases to zero (0)
+      value: 0.001
+    }
+
   }
 }
+
 layer {
   name: "relu6"
   type: "ReLU"
+#  type: "TanH"
   bottom: "fc6"
   top: "fc6"
 }
+
 layer {
   name: "drop6"
   type: "Dropout"
   bottom: "fc6"
   top: "fc6"
   dropout_param {
-    dropout_ratio: 0.9
+    dropout_ratio: 0.5
   }
 }
+
+#--------------------------------------------------------------------------
 layer {
   name: "fc7"
   type: "InnerProduct"
@@ -543,93 +406,33 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 4096
-#    weight_filler {
-#      type: "xavier"
-#    }
-  }
-}
-layer {
-  name: "relu7"
-  type: "ReLU"
-  bottom: "fc7"
-  top: "fc7"
-}
-layer {
-  name: "drop7"
-  type: "Dropout"
-  bottom: "fc7"
-  top: "fc7"
-  dropout_param {
-    dropout_ratio: 0.8
-  }
-}
-layer {
-  name: "fc8-1"
-  type: "InnerProduct"
-  bottom: "fc7"
-  top: "fc8-1"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  inner_product_param {
-    num_output: 101
+    num_output: 2048
     weight_filler {
-      type: "gaussian"
-	  std: 0.001
+      type: "xavier"
     }
     bias_filler {
-      type: "constant"
-      value: 0
+      type: "constant" # initialize the biases to zero (0)
+      value: 0.001
     }
-#    weight_filler {
-#      type: "xavier"
-#    }
+
   }
 }
 
-#layer {
-#  name: "loss"
-#  type: "SoftmaxWithLoss"
-#  bottom: "fc8-1"
-#  bottom: "label_local"
-#  include {
-#    phase: TRAIN
-#  }
-#}
-#layer {
-#  name: "loss"
-#  type: "SoftmaxWithLoss"
-#  bottom: "fc8-1"
-#  bottom: "label_local"
-#  top: "loss"
-#  include {
-#    phase: TEST
-#  }
-#}
-
-#layer {
-#  name: "accuracy"
-# type: "Accuracy"
-#  bottom: "fc8-1"
-#  bottom: "label_local"
-#  top: "accuracy"
-#  include {
-#    phase: TEST
-3  }
-#}
+layer {
+  name: "mse"
+  type: "EuclideanLoss"
+  bottom: "fc7"
+  bottom: "label"
+  top: "mse"
+  include: { phase: TEST }
+}
 
 layer {
   name: "loss"
   type: "EuclideanLoss"
-  bottom:  fc8-1
+  bottom: "fc7"
   bottom: "label"
   top: "loss"
+  include: { phase: TRAIN }
 }
-
 

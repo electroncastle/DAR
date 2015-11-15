@@ -135,19 +135,20 @@ public:
              QString filename,
              QString filename_flowx,
              QString filename_flowy,
-             cv::Size new_size=cv::Size(0,0), int resize_type=0, bool createCompactFlowImage=false){
+             QString filename_flow,
+             cv::Size new_size=cv::Size(0,0), int resize_type=0){
 
         ImageItem::image = image;
         ImageItem::filename = filename;
         ImageItem::filename_flowx = filename_flowx;
         ImageItem::filename_flowy = filename_flowy;
+        ImageItem::filename_flow = filename_flow;
         ImageItem::new_size  = new_size;
         ImageItem::resize_type = resize_type;
 
         ImageItem::flow_x = flow_x;
         ImageItem::flow_y = flow_y;
         ImageItem::bound = bound;
-        ImageItem::createCompactFlowImage = createCompactFlowImage;
     }
 
     cv::Size new_size;
@@ -156,12 +157,12 @@ public:
     QString filename;
     QString filename_flowx;
     QString filename_flowy;
+    QString filename_flow;
 
+    // Source flow from the estimator
     cv::Mat flow_x;
     cv::Mat flow_y;
     int bound;
-    bool createCompactFlowImage;
-
 };
 
 class ImageWriter: public QThread
@@ -211,8 +212,12 @@ public:
         ImageProcessor::jobQueue = jobs;
     }
 
-
+    void init();
     int process(QString videoClass, QString videoFileName);
+
+    void estimateFlow(QString img1_file, QString img2_file, QString colorFlow_file, int of_type, Size new_size=cv::Size(0,0) );
+    void estimateFlow(Mat &img1, Mat &img2, cv::Mat &flow_x, cv::Mat &flow_y, int of_type);
+    void initFlow();
 
 public slots:
     void finish();
@@ -238,6 +243,14 @@ private:
     bool threaded_imgwrite;
     ConcurrentQueue<ImageItem> *imageQueue;
     ImageWriter *imgWriter;
+
+
+    Ptr<cuda::FarnebackOpticalFlow> alg_farn;
+    Ptr<cuda::OpticalFlowDual_TVL1> alg_tvl1;
+    Ptr<cuda::BroxOpticalFlow> alg_brox;
+    cv::cuda::GpuMat frame_0;
+    cv::cuda::GpuMat frame_1;
+    cv::cuda::GpuMat d_flow;
 };
 
 

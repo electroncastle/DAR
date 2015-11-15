@@ -11,8 +11,10 @@ $ make -j 8
 $ make install
 
 # Build the pthon extension
+cd python
 $ export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=cpp
-$ export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION_VERSION=2$ python setup.py build
+$ export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION_VERSION=2
+$ python setup.py build
 $ python setup.py install --home=$DAR_ROOT --cpp_implementation
 
 

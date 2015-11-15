@@ -17,7 +17,7 @@ SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 export DAR_ROOT=$(dirname $SCRIPT_DIR)
 
 # Default caffe build used in the DAR. 
-export CAFFE_ROOT=$DAR_ROOT/caffe
+export CAFFE_ROOT=$DAR_ROOT
 export PATH=$DAR_ROOT/bin:$DAR_ROOT/sbin:$PATH
 
 export LD_LIBRARY_PATH=$DAR_ROOT/lib/:$LD_LIBRARY_PATH

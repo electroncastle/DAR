@@ -110,8 +110,35 @@ QList<JobItem*> *jobsFromFile(QString filename)
 }
 
 #ifdef USE_MPI
-void run()
+void run(QString img1_filename, QString img2_filename)
 {
+
+    if (img1_filename != "" && img2_filename != ""){
+
+        int devs = cv::cuda::getCudaEnabledDeviceCount();
+        std::cout << "GPU CUDA devices: " << devs << std::endl;
+        if (devs == 0){
+            std::cout << "No CUDA GPU found. Terminating" << std::endl;
+            return;
+        }
+
+        int gpu_id = 0;
+        std::cout << "Using GPU: " << gpu_id << std::endl;
+
+        ImageProcessor *ip = new ImageProcessor();
+        ip->init();
+        ip->setGPUDevice(gpu_id);
+        ip->estimateFlow(img1_filename, img2_filename, "flow.jpg", 1);
+//        ip->setMPIId(1);
+//        im[i]->setPath(rgbflow_path);
+//        im[i]->setJobList(clientJobs);
+//        im[i]->start();
+
+
+        return;
+    }
+
+
     bool makeRGBFlow = false;
     String data_root = "/home/jiri/Lake/HAR/datasets/UCF-101/";
     data_root = "/home/jiri/Lake/HAR/datasets/UCF-101/";
@@ -159,6 +186,7 @@ void run()
                 im[i]->setMPIId(1);
                 im[i]->setPath(rgbflow_path);
                 im[i]->setJobList(clientJobs);
+                im[i]->init();
                 im[i]->start();
             }
         }
@@ -371,7 +399,11 @@ int main(int argc, char** argv)
     std::cout << myid << " =  GPU CUDA devices: " << devs << std::endl;
 
     QCoreApplication a(argc, argv);
-    run();
+    if (argc > 2)
+        run(argv[1], argv[2]);
+    else
+        run("","");
+
     //return a.exec();
 
 #ifdef USE_MPI

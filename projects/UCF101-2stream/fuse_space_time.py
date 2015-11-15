@@ -39,6 +39,73 @@ def parseLine(line):
     return det
 
 
+def parseLineList(line_list):
+
+    det = Detection()
+    det.trueClassId = int(line_list[0].strip())
+    det.detectedClassId = int(line_list[1].strip())
+    det.className = line_list[2].strip()
+    rgb_features = np.asarray(line_list)
+    det.features = rgb_features[3:].astype(np.float)
+
+    return det
+
+
+def test(rgb_data, flow_data, temp_weight):
+
+    correct = 0
+    correctRGB = 0
+    correctFlow = 0
+    total = 0
+
+    for i in range(len(rgb_data)):
+
+        # if i>643:
+        #     break
+
+        rgb_line = rgb_data[i]
+        if len(flow_data) <= i:
+            break
+
+        flow_line = flow_data[i]
+
+        total += 1
+
+        rgbDet = parseLineList(rgb_line)
+        rgbDet.decoderName = 'RGB'
+        if rgbDet.correctDetection():
+            correctRGB += 1
+
+        flowDet = parseLineList(flow_line)
+        flowDet.decoderName = 'Flow'
+        if flowDet.correctDetection():
+            correctFlow += 1
+
+        # temp_weight = 0.7
+        featureSum = rgbDet.features*(1.0-temp_weight) + flowDet.features*temp_weight
+        resultAvg = featureSum
+        classId = resultAvg.argmax()
+
+        # print rgbDet
+        # print flowDet
+        # print 'Both ',classId
+
+        if (classId == rgbDet.trueClassId):
+            correct+=1
+
+    # print "Weighted avarage temp/spatial: ",temp_weight,"/",(1.0-temp_weight)
+    correctP = 100.0*correct/float(total)
+    # print 'Combined: ',correctP
+
+    correctRGBP = 100.0*correctRGB/float(total)
+    # print 'Correct RGB: ',correctRGBP
+
+    correctFlowP = 100.0*correctFlow/float(total)
+    # print 'Correct Flow: ',correctFlowP
+
+    return [correctRGBP, correctFlowP, correctP]
+
+
 def go():
 
     test_result_flow_filename = '/home/jiri/Lake/DAR/share/datasets/UCF-101/val-1-rnd-result-flow.txt'
@@ -53,52 +120,53 @@ def go():
 
     # test_videos = loadTestVideos(test_data_filename)
 
-    flow_file = open(test_result_flow_filename, 'rt')
-    rgb_file = open(test_result_rgb_filename, 'rt')
+    # flow_file = open(test_result_flow_filename, 'rt')
+    # rgb_file = open(test_result_rgb_filename, 'rt')
 
-    correct = 0
-    correctRGB = 0
-    correctFlow = 0
-    total = 0
+    flow_data = np.loadtxt(test_result_flow_filename, str, delimiter=' ')
+    rgb_data = np.loadtxt(test_result_rgb_filename, str, delimiter=' ')
 
-    while (True):
+    maximize_weight = False
+    weight = 0.4
+    weight_step = 0.005
+    last_step = 0.00
+    last_gain = -1.0
 
-        rgb_line = rgb_file.readline().strip()
-        flow_line = flow_file.readline().strip()
-        if (len(flow_line) == 0 or len(rgb_line) == 0):
-            break
+    max_weight = 0.0
+    max_gain = -1.0
+    dir = 1.0
 
-        total+=1
+    random.seed()
+    if maximize_weight:
 
-        rgbDet = parseLine(rgb_line)
-        rgbDet.decoderName = 'RGB'
-        if rgbDet.correctDetection():
-            correctRGB += 1
+        while True:
+            correctRGBP, correctFlowP, gain = test(rgb_data, flow_data, weight)
 
-        flowDet = parseLine(flow_line)
-        flowDet.decoderName = 'Flow'
-        if flowDet.correctDetection():
-            correctFlow += 1
+            if gain > max_gain:
+                max_weight = weight
+                max_gain = gain
 
+            print "w=",weight, "  gain=", gain, "   max gain=",max_gain, "  max_weight=",max_weight
 
-        featureSum = (rgbDet.features + flowDet.features)
-        resultAvg = featureSum/2.0
-        classId = resultAvg.argmax()
+            weight += weight_step
 
-        # print rgbDet
-        # print flowDet
-        # print 'Both ',classId
+            if weight > 1.0:
+                break
+    else:
+        weight = 0.715
+        correctRGBP, correctFlowP, correctP = test(rgb_data, flow_data, weight)
+    #
+    # print 'UCF101 split 1 validation dataset video num: 3783'
+    # print 'Video num: ', total
 
-        if (classId == rgbDet.trueClassId):
-            correct+=1
+    # print "Weighted avarage temp/spatial: ",temp_weight,"/",(1.0-temp_weight)
+    # correctP = 100.0*correct/float(total)
+    print 'Combined: ',correctP
 
-    correctP = 100.0*correct/float(total)
-    print 'Correct: ',correctP
-
-    correctRGBP = 100.0*correctRGB/float(total)
+    # correctRGBP = 100.0*correctRGB/float(total)
     print 'Correct RGB: ',correctRGBP
 
-    correctFlowP = 100.0*correctFlow/float(total)
+    # correctFlowP = 100.0*correctFlow/float(total)
     print 'Correct Flow: ',correctFlowP
 
 

@@ -490,10 +490,10 @@ def go(gpuid, flow, no_out):
 
     dataset_dir = dar_root+'/share/datasets/'
     rgbflow_path = dataset_dir+'/UCF-101/UCF101-rgbflow/'
-    rgbflow_path = dataset_dir+'/UCF-101/ucf101_flow_img_tvl1_gpu/'
+    #rgbflow_path = dataset_dir+'/UCF-101/ucf101_flow_img_tvl1_gpu/'
 
     video_path = rgbflow_path+'/FloorGymnastics/v_FloorGymnastics_g16_c04'
-    video_path = rgbflow_path+'/Shotput/v_Shotput_g05_c07'
+    #video_path = rgbflow_path+'/Shotput/v_Shotput_g05_c07'
     #video_path = '/home/jiri/Lake/HAR/datasets/UCF-101/UCF101-rgbflow/Diving/v_Diving_g22_c06'
     #video_path = '/home/jiri/Lake/HAR/datasets/UCF-101/UCF101-rgbflow/IceDancing/v_IceDancing_g03_c03'
 
@@ -540,7 +540,7 @@ def go(gpuid, flow, no_out):
     for v in range(0, test_video_len):
 
         test_video = test_videos[v]
-        # test_video[1] = video_path
+        test_video[1] = video_path
 
         videoDir = test_video[1].split('/')
         videoDir = videoDir[len(videoDir)-1].strip()

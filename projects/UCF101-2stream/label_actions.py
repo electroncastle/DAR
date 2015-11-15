@@ -255,14 +255,17 @@ class VideoActionsLabeler(object):
 
         frames = temporal_data[:max_frames, 0].astype(int)
 
-        temp_w = 0.35   # Best 0.35
+        temp_w = 0.35   # Continuous Best 0.35
+        temp_w = 0.5   # Overlapping Best 0.5
         classes = (temporal_data[:max_frames, 1:]*temp_w + spatial_data[:max_frames, 1:]*(1.0-temp_w))
         # classes = temporal_data[:max_frames, 1:]
         print classes.shape
 
         step = frames[1]-frames[0]
         fps = 30.0
-        wnd_size_sec = 0.3
+
+        wnd_size_sec = 0.3  # continuous best: 0.3
+        wnd_size_sec = 0.4  # overlapping best: 0.4
         wnd_size = int(wnd_size_sec*fps/step)+1
 
         classes_flt = []
@@ -497,7 +500,7 @@ class VideoActionsLabeler(object):
         fout_ap.write(rec)
         fout_ap.flush()
 
-        return
+        return [tp, fp, fn]
 
     def load_ground_truth(self, gt_path):
 
@@ -543,6 +546,9 @@ class VideoActionsLabeler(object):
         fout = self.open_append(dar_root+'/share/datasets/THUMOS2015/detections.txt')
         fout_ap = self.open_append(dar_root+'/share/datasets/THUMOS2015/detections-ap.txt')
 
+
+        stat = np.array([0.0, 0.0, 0.0])
+        count = 0
         for i in range(len(val_list)):
             file = val_list[i]
 
@@ -554,8 +560,10 @@ class VideoActionsLabeler(object):
             video_path = os.path.join(self.datasets_root, self.dataset_name, self.dataset_rgbflow, file)
 
             try:
-                temporal_data = np.loadtxt(video_path+'/temporal.txt', float, delimiter=' ')
-                spatial_data = np.loadtxt(video_path+'/spatial.txt', float, delimiter=' ')
+                # temporal_data = np.loadtxt(video_path+'/temporal.txt', float, delimiter=' ')
+                # spatial_data = np.loadtxt(video_path+'/spatial.txt', float, delimiter=' ')
+                temporal_data = np.loadtxt(video_path+'/temporal-s5.txt', float, delimiter=' ')
+                spatial_data = np.loadtxt(video_path+'/spatial-s5.txt', float, delimiter=' ')
             except:
                 print "Cannot read temporal or spatial data. Finishing..."
                 break
@@ -574,12 +582,16 @@ class VideoActionsLabeler(object):
 
             self.record(action_list, fout)
 
-            self.evaluate(action_list, file, fout_ap)
+            rec = self.evaluate(action_list, file, fout_ap)
+            stat += rec
+            count += 1
             pass
 
         fout.close()
         fout_ap.close()
 
+        print stat/count
+        #[  1.78881988  28.03726708  14.33540373]
         return
 
 

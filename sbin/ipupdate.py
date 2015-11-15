@@ -159,10 +159,16 @@ if __name__ == "__main__":
         try:
             ns = getNvidiaState()
             nsb64 = base64.b64encode(ns);
-            #print nsb64
+           # print nsb64
 
-            p = SmartPlug(plug_ip, (plug_login, plug_passwd))
-            power = p.powerInfo()
+            try:
+				p = SmartPlug(plug_ip, (plug_login, plug_passwd))
+				power = p.powerInfo()
+            except Exception as e:
+				power=['0','0','0']
+				print "SMARTPLUG access error !"
+					           
+            
             ip = getLocalIP()
 
             print "Updating: Power=" + power[0] + " A=" + power[1] + " ip=" + ip + " last=" + power[2]

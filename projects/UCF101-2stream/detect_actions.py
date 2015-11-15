@@ -29,7 +29,7 @@ class VideoActionDetector(object):
     def __init__(self):
         self.name = "VideoActionDetector"
         self.net = None
-        self.stride = 10
+        self.stride = 5
         self.gpuid = 0
         self.threadLock = threading.Lock()
         self.transformer = None
@@ -54,6 +54,7 @@ class VideoActionDetector(object):
         self.flow_net = None
 
         self.labels = []
+        self.dry_run = False
 
     def update_path(self):
         # Common
@@ -283,6 +284,10 @@ class VideoActionDetector(object):
 
     def save_result(self, classes, filename):
 
+        if filename == "":
+            "NOT SAVING RESULT !!"
+            return
+
         fout = open(filename, 'wt')
         for i in range(classes.shape[0]):
 
@@ -332,10 +337,12 @@ class VideoActionDetector(object):
 
     #@profile
     def detect_temporal(self, device_id):
-        out_filename = os.path.join(self.rgbflow_path)+'/temporal.txt'
-        if os.path.isfile(out_filename):
-            print 'Already exists: ',out_filename
-            return
+
+        if not self.dry_run:
+            out_filename = os.path.join(self.rgbflow_path)+'/temporal-s5.txt'
+            if os.path.isfile(out_filename):
+                print 'Already exists: ',out_filename
+                return
 
         caffe.set_mode_gpu()
         caffe.set_device(device_id)
@@ -392,7 +399,7 @@ class VideoActionDetector(object):
                 id = s*augmented_size
                 classAvg = np.sum(classes[id:id+augmented_size, :], 0)/augmented_size
                 # self.showResult(classes[id:id+augmented_size, :] )
-                # self.showResult(classAvg)
+                #self.showResult(classAvg)
 
                 if self.classes_temporal == []:
                     self.classes_temporal = classAvg.copy()
@@ -400,7 +407,8 @@ class VideoActionDetector(object):
                     self.classes_temporal = np.vstack([self.classes_temporal, classAvg])
 
 
-            print 'FLOW frame: ',frame_id,'  [',(frame_id*1.0/30.0), ']  ',
+            ts = frame_id*1.0/30.0
+            print 'FLOW frame: ',frame_id,'  [', '%.3f' % ts, ']  ',
             self.showResult(classes)
 
 
@@ -412,17 +420,20 @@ class VideoActionDetector(object):
         self.showResult(self.classes_temporal)
 
 
-        [path, filename] = os.path.split(self.rgbflow_path)
-        self.save_result(self.classes_temporal, out_filename)
+
+        if not self.dry_run:
+            [path, filename] = os.path.split(self.rgbflow_path)
+            self.save_result(self.classes_temporal, out_filename)
 
 
     #@profile
     def detect_spatial(self, device_id):
 
-        out_filename = os.path.join(self.rgbflow_path)+'/spatial.txt'
-        if os.path.isfile(out_filename):
-            print 'Already exists: ',out_filename
-            return
+        if not self.dry_run:
+            out_filename = os.path.join(self.rgbflow_path)+'/spatial-s5.txt'
+            if os.path.isfile(out_filename):
+                print 'Already exists: ',out_filename
+                return
 
         caffe.set_mode_gpu()
         caffe.set_device(device_id)
@@ -488,7 +499,9 @@ class VideoActionDetector(object):
                     self.classes_spatial = np.vstack([self.classes_spatial, classAvg])
 
 
-            print 'RGB frame: ',frame_id,'  ',
+            ts = frame_id*1.0/30.0
+            print 'RGB frame: ',frame_id,'  [', '%.3f' % ts, ']  ',
+
             self.showResult(classAvg)
             pass
 
@@ -500,8 +513,9 @@ class VideoActionDetector(object):
         self.showResult(self.classes_spatial)
 
 
-        [path, filename] = os.path.split(self.rgbflow_path)
-        self.save_result(self.classes_spatial, out_filename)
+        if not self.dry_run:
+            [path, filename] = os.path.split(self.rgbflow_path)
+            self.save_result(self.classes_spatial, out_filename)
 
         return
 
@@ -641,6 +655,7 @@ if __name__ == "__main__":
 
     video = VideoActionDetector()
     video.set_path()
+    video.dry_run = False
     # video.detect_temporal(0)
     # sys.exit(0)
 
@@ -649,11 +664,23 @@ if __name__ == "__main__":
     val_list = np.loadtxt(val_list_filename, str, delimiter=' ')
 
     for i in range(len(val_list)):
-        file = val_list[i]
 
+        # if i == 4:
+        #     break
+
+        file = val_list[i]
         [file, ext] = os.path.splitext(file)
         # if file == "thumos15_video_validation_0001630":
         #     continue
+
+        # file = 'v_Shotput_g07_c01'
+        # video.class_name = 'Rowing'
+        #
+        # file = 'v_FloorGymnastics_g06_c05'
+        # video.class_name = 'FloorGymnastics'
+
+        # file = 'v_Rowing_g15_c03'
+        # video.class_name = 'Rowing'
 
         video.set_video_name(file)
 

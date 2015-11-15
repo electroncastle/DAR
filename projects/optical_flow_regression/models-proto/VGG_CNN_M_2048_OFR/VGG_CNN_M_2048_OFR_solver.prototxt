@@ -1,18 +1,26 @@
 net: "models-proto/VGG_CNN_M_2048_OFR/VGG_CNN_M_2048_OFR_train_val_fast.prototxt"
-test_iter: 170
-test_interval: 500
-base_lr: 0.1
-#base_lr:  0.0001
+test_iter: 10
+test_interval: 100
+
+# Initialization
+base_lr: 0.0001
+
+
 lr_policy: "step"
 gamma: 0.1
 stepsize: 10000
 display: 20
-max_iter: 30000
+max_iter: 50000
 momentum: 0.9
 weight_decay: 0.0005
+#weight_decay: 0.001
 snapshot: 1000
 snapshot_prefix: "VGG_CNN_M_2048_OFR"
-iter_size: 2
+iter_size: 1
 #device_id: [0]
 test_initialization: true
+
 #solver_mode: CPU
+solver_mode: GPU
+#solver_type: ADAGRAD
+#average_loss: 50

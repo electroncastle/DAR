@@ -13,9 +13,7 @@ using namespace std;
 using namespace cv;
 //using namespace cv::gpu;
 
-// Opoencv 3
-#include "opencv2/cudaoptflow.hpp"
-#include "opencv2/cudaarithm.hpp"
+
 
 
 #include <QCoreApplication>
@@ -24,6 +22,7 @@ using namespace cv;
 #include <QDebug>
 #include <QDir>
 #include <extractFlow.h>
+#include <colorcode.h>
 
 #define USE_MPI 1
 
@@ -167,6 +166,7 @@ static void convertFlowToImage(const Mat &flow_x, const Mat &flow_y, Mat &img_x,
 {
     #define CAST(v, L, H) ((v) > (H) ? 255 : (v) < (L) ? 0 : \
         cvRound(255*((v) - (L))/((H)-(L))))
+
 	for (int i = 0; i < flow_x.rows; ++i) {
 		for (int j = 0; j < flow_y.cols; ++j) {
 			float x = flow_x.at<float>(i,j);
@@ -215,6 +215,8 @@ cv::Mat thresholdAbout(cv::Mat m, int val)
     m.convertTo(o, CV_8UC1, 1, 0);
     return o;
 }
+
+
 
 int makeRFBFlowImage(QString outPath, QString videoFilename)
 {
@@ -316,7 +318,10 @@ Mat img_resize(Mat &src, cv::Size new_size, int resize_type)
     Mat result;
     if (resize_type == 2){
         Mat tmp;
-        // crop
+
+        // Resize first to fit to the smallest size of the new bounding box
+        // while keeping original aspect ratio
+        // and then crop to the exact new width height
         float aspect = (float)cw/ch;
 
         int hd = new_size.height - ch;
@@ -345,6 +350,156 @@ Mat img_resize(Mat &src, cv::Size new_size, int resize_type)
 
 //}
 
+
+void ImageProcessor::initFlow()
+{
+    alg_farn = cuda::FarnebackOpticalFlow::create();
+    alg_tvl1 = cuda::OpticalFlowDual_TVL1::create(
+                0.25, // double tau =0.25
+
+                /**
+                 * Weight parameter for the data term, attachment parameter.
+                 * This is the most relevant parameter, which determines the smoothness of the output.
+                 * The smaller this parameter is, the smoother the solutions we obtain.
+                 * It depends on the range of motions of the images, so its value should be adapted to each image sequence.
+                 */
+                0.15, // double lambda = 0.15
+
+                /**
+                 * parameter used for motion estimation. It adds a variable allowing for illumination variations
+                 * Set this parameter to 1. if you have varying illumination.
+                 * See: Chambolle et al, A First-Order Primal-Dual Algorithm for Convex Problems with Applications to Imaging
+                 * Journal of Mathematical imaging and vision, may 2011 Vol 40 issue 1, pp 120-145
+                 */
+                0.3, // double theta = 0.3
+
+                /**
+                 * Number of scales used to create the pyramid of images.
+                 */
+                10, // int nscales = 5
+
+                /**
+                 * Number of warpings per scale.
+                 * Represents the number of times that I1(x+u0) and grad( I1(x+u0) ) are computed per scale.
+                 * This is a parameter that assures the stability of the method.
+                 * It also affects the running time, so it is a compromise between speed and accuracy.
+                 */
+                10, // int warps = 5
+
+                /**
+                 * Stopping criterion threshold used in the numerical scheme, which is a trade-off between precision and running time.
+                 * A small value will yield more accurate solutions at the expense of a slower convergence.
+                 */
+                0.01, //double epsilon = 0.01
+                300, // int iterations = 300
+                0.8, // double scaleStep =0.8
+
+
+                /**
+                 * Weight parameter for (u - v)^2, tightness parameter.
+                 * It serves as a link between the attachment and the regularization terms.
+                 * In theory, it should have a small value in order to maintain both parts in correspondence.
+                 * The method is stable for a large range of values of this parameter.
+                 */
+                0.000, // double gamma =
+                false); //bool useInitialFlow =
+
+    alg_brox = cuda::BroxOpticalFlow::create(0.197f, 50.0f, 0.8f, 10, 77, 10);
+
+    //GpuMat d_flow(frame_0.size(), CV_32FC2);
+//    d_flow = GpuMat(frame_0.size(), CV_32FC2);
+}
+
+void ImageProcessor::estimateFlow(QString img1_file, QString img2_file, QString colorFlow_file, int of_type, cv::Size new_size)
+{
+    cv::Mat img1 = cv::imread(img1_file.toStdString(), cv::IMREAD_GRAYSCALE);
+    cv::Mat img2 = cv::imread(img2_file.toStdString(), cv::IMREAD_GRAYSCALE);
+
+    Mat flow_x;
+    Mat flow_y;
+    int flow_type = 1;
+    estimateFlow(img1, img2, flow_x, flow_y, flow_type);
+
+    double  bound = 30.0;
+    bound = 20.0;
+    cv::Mat rgbFlow = motionToColor(flow_x, flow_y, bound);
+
+
+//    cv::Size new_size(224, 224);
+    int resize_type = 2;
+    if (new_size.width > 0){
+        rgbFlow = img_resize(rgbFlow, new_size, resize_type);
+    }
+
+
+    vector<int> p;
+    p.push_back(CV_IMWRITE_JPEG_QUALITY);
+    p.push_back(99); // compression factor
+    imwrite(colorFlow_file.toStdString(), rgbFlow, p);
+
+}
+
+
+void ImageProcessor::estimateFlow(cv::Mat &img1, cv::Mat &img2, cv::Mat &flow_x, cv::Mat &flow_y, int of_type)
+{
+#define DO_FLOW 1
+#ifdef DO_FLOW
+
+            frame_0.upload(img1);
+            frame_1.upload(img2);
+
+            d_flow = GpuMat(frame_0.size(), CV_32FC2);
+
+    //        GpuMat frame_0(prev_grey);
+    //        GpuMat frame_1(grey);
+
+    //        GpuMat frame_0;
+    //        GpuMat frame_1;
+    //        frame_0_r.convertTo(frame_0, CV_32F, 1.0 / 255.0);
+    //        frame_1_r.convertTo(frame_1, CV_32F, 1.0 / 255.0);
+
+
+            // GPU optical flow
+            switch(of_type){
+            case 0:
+    //            alg_farn->calc(frame_0,frame_1, flow_u,flow_v);
+                alg_farn->calc(frame_0,frame_1, d_flow);
+                break;
+            case 1:
+                alg_tvl1->calc(frame_0,frame_1, d_flow);
+                break;
+            case 2:
+                GpuMat d_frame0f, d_frame1f;
+                frame_0.convertTo(d_frame0f, CV_32F, 1.0 / 255.0);
+                frame_1.convertTo(d_frame1f, CV_32F, 1.0 / 255.0);
+                alg_brox->calc(d_frame0f, d_frame1f, d_flow);
+                break;
+            }
+
+            //printf("Frame: %d\n", frame_num);
+            //showFlow("flow", d_flow);  waitKey(1);
+
+
+    //		flow_u.download(flow_x);
+    //		flow_v.download(flow_y);
+            // Opencv 3.0
+
+            GpuMat planes[2];
+            cuda::split(d_flow, planes);
+            flow_x = cv::Mat(planes[0]);
+            flow_y = cv::Mat(planes[1]);
+#else
+            Mat flow_x = cv::Mat(240, 320, CV_32FC1, cv::Scalar(0.5));
+            Mat flow_y  = cv::Mat(240, 320, CV_32FC1, cv::Scalar(0.5));
+#endif
+
+}
+
+void ImageProcessor::init()
+{
+    initFlow();
+}
+
 int ImageProcessor::process(QString videoClass, QString videoFileName)
 {
     vector<int> p;
@@ -352,18 +507,17 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
     p.push_back(99); // compression factor
 
     bool overwrite = false;
-    bool createCompactFlowImage = false;  // RGB jpg -> R=flow_x  G=flow_y B=mag
     int step = 1;
     int type = 1;
     int bound = 20;
 
-    int new_width = 320;
-    int new_height = 256;
+    int new_width = 224;//320;
+    int new_height = 224; //256;
     cv::Size new_size(new_width, new_height);
 
     // 0 - stretch
     // 1 - fit
-    // 2 - crop
+    // 2 - resize to the target size with aspect ratio 1:1 and then crop outside region
     int resize_type = 2;
     //bool preserve_aspect_ratio = true;
 
@@ -372,10 +526,15 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
 
     QFileInfo fileInfo(videoFileName);
     QString classPath = path+"/"+videoClass+"/"+fileInfo.baseName()+"/";
-    QString imgFile = classPath+"image";
+    QString imgFile = classPath+"cimage";
     QString xFlowFile = classPath+"flow_x";
     QString yFlowFile = classPath+"flow_y";
     QString flowFile = classPath+"flow";
+
+    // Don't produce the x/y flows individually
+    xFlowFile = "";
+    yFlowFile = "";
+
 
     QDir dir;
     dir.mkpath(classPath);
@@ -388,8 +547,7 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
 
     int frame_num = 0;
     Mat image, prev_image, prev_grey, grey, frame;
-    //Mat flow_x, flow_y;
-    GpuMat frame_0, frame_1; //, flow_u, flow_v;
+    GpuMat frame_0, frame_1;
 
     setDevice(gpu_id);
 //    int devs = cv::cuda::getCudaEnabledDeviceCount();
@@ -404,7 +562,7 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
     Ptr<cuda::OpticalFlowDual_TVL1> alg_tvl1 = cuda::OpticalFlowDual_TVL1::create();
     Ptr<cuda::BroxOpticalFlow> alg_brox = cuda::BroxOpticalFlow::create(0.197f, 50.0f, 0.8f, 10, 77, 10);
 
-    GpuMat d_flow(frame_0.size(), CV_32FC2);
+    //GpuMat d_flow(frame_0.size(), CV_32FC2);
 
 
     bool processed = false;
@@ -460,22 +618,27 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
         // Check whether the frame already exists
         char tmp[20];
         sprintf(tmp,"_%04d.jpg",int(frame_num));
+        QString imgFileFull = imgFile != "" ? imgFile + QString(tmp) : "";
 
-        QString xFlowFileFull = xFlowFile + QString(tmp);
-        QString yFlowFileFull = yFlowFile + QString(tmp);
-        QString imgFileFull = imgFile + QString(tmp);
-        QString flowFileFull = flowFile + QString(tmp);
+        // The OF is calculated prev_frame -> current_frame
+        // The OF image represents motion of pixels from prev_frame -> current_frame
+        // this the OF image will have index of hte prev_frame
+        sprintf(tmp,"_%04d.jpg",int(frame_num-1));
+        QString xFlowFileFull = xFlowFile != "" ? xFlowFile + QString(tmp) : "";
+        QString yFlowFileFull = yFlowFile != "" ? yFlowFile + QString(tmp) : "";
+        QString flowFileFull = flowFile != "" ? flowFile + QString(tmp) : "";
 
         //printf("Decoded frame: %d\n", frame_num);
 
-//        qDebug() << xFlowFileFull;
-//        qDebug() << yFlowFileFull;
-//        qDebug() << imgFileFull;
+        // If the image/flow filename is specified and the file doesn't
+        // exist on the filesystem run the optical flow estimation for
+        // all images/flows
         if (overwrite ||
-                (!QFileInfo(flowFileFull).exists() && createCompactFlowImage) ||
-                !QFileInfo(xFlowFileFull).exists() ||
-                !QFileInfo(yFlowFileFull).exists() ||
-                !QFileInfo(imgFileFull).exists()){
+                (flowFileFull != "" && !QFileInfo(flowFileFull).exists()) ||
+                (xFlowFileFull != "" && !QFileInfo(xFlowFileFull).exists()) ||
+                (yFlowFileFull != "" && !QFileInfo(yFlowFileFull).exists()) ||
+                (imgFileFull != "" && !QFileInfo(imgFileFull).exists()) )
+        {
 
             processed = true;
             frame.copyTo(image);
@@ -484,6 +647,10 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
     //        waitKey(1);
     //        continue;
 
+            Mat flow_x;
+            Mat flow_y;
+            estimateFlow(prev_grey, grey, flow_x, flow_y, type);
+/*
 #define DO_FLOW 1
 #ifdef DO_FLOW
 
@@ -532,11 +699,19 @@ int ImageProcessor::process(QString videoClass, QString videoFileName)
             Mat flow_x = cv::Mat(240, 320, CV_32FC1, cv::Scalar(0.5));
             Mat flow_y  = cv::Mat(240, 320, CV_32FC1, cv::Scalar(0.5));
 #endif
+*/
+
+//            qDebug() << xFlowFileFull;
+//            qDebug() << yFlowFileFull;
+//            qDebug() << imgFileFull;
+//            qDebug() << flowFileFull;
 
             ImageItem ii;
             ii.set(flow_x, flow_y, image, bound,
-                   imgFile + tmp,  xFlowFile + tmp, yFlowFile + tmp,
-                   new_size, resize_type, createCompactFlowImage);
+                   imgFileFull,
+                   xFlowFileFull, yFlowFileFull,
+                   flowFileFull,
+                   new_size, resize_type);
             imageQueue->push(ii);
 
 #ifdef XXX
@@ -686,68 +861,38 @@ void ImageProcessor::run()
 }
 
 
-/**
- * @brief ImageWriter::run
- */
 
 
-void ImageWriter::run()
+
+cv::Mat flowToRGB(cv::Mat &flow_x, cv::Mat &flow_y )
 {
-    vector<int> p;
-    p.push_back(CV_IMWRITE_JPEG_QUALITY);
-    p.push_back(95); // compression factor
-
-    isRunning = 1;
-
-    while(isRunning)  {
-        ImageItem img;
-        imageQueue->popWait(img);
-       // int left = imageQueue->size();
-
-        if (0){
-            if (img.resize_type == 0 || (img.new_size.width == 0 && img.new_size.height == 0)){
-                imwrite(img.filename.toStdString(), img.image, p);
-            }else{
-                cv::Mat image_ = img_resize(img.image, img.new_size, img.resize_type);
-                imwrite(img.filename.toStdString(), image_, p);
-            }
-        }else{
-
-            // Output optical flow
-            Mat imgX(img.flow_x.size(),CV_8UC1);
-            Mat imgY(img.flow_y.size(),CV_8UC1);
-
-            convertFlowToImage(img.flow_x, img.flow_y, imgX, imgY, -img.bound, img.bound);
-
-
-            if (img.createCompactFlowImage){
-                // Write out combined flow filed as RGB img
-                int scale = 16;
+        // Write out combined flow filled as RGB img
+        int scale = 16;
 
 //                cv::Mat mag = cv::Mat(xoff.rows, xoff.cols, CV_8UC1, cv::Scalar(128));
 //                magf.convertTo(mag, CV_8UC1, 127.0, 128);
 //                cv::minMaxLoc(mag, &minval, &maxval);
 
-                cv::Mat magf;
-                cv::magnitude(img.flow_x, img.flow_y, magf);
+        cv::Mat magf;
+        cv::magnitude(flow_x, flow_y, magf);
 
-                magf = magf*scale+128;
+        magf = magf*scale+128;
 
-                cv::Mat flow_x_s = img.flow_x*scale+128;
-                cv::Mat flow_y_s = img.flow_y*scale+128;
+        cv::Mat flow_x_s = flow_x*scale+128;
+        cv::Mat flow_y_s = flow_y*scale+128;
 
-                cv::Mat mag, xof, yof;
-                magf.convertTo(mag, CV_8UC1, 1, 0);
-                flow_x_s.convertTo(xof, CV_8UC1, 1, 0);
-                flow_y_s.convertTo(yof, CV_8UC1, 1, 0);
+        cv::Mat mag, xof, yof;
+        magf.convertTo(mag, CV_8UC1, 1, 0);
+        flow_x_s.convertTo(xof, CV_8UC1, 1, 0);
+        flow_y_s.convertTo(yof, CV_8UC1, 1, 0);
 
-                std::vector<cv::Mat> channels;
-                channels.push_back(mag);
-                channels.push_back(yof);
-                channels.push_back(xof);
+        std::vector<cv::Mat> channels;
+        channels.push_back(mag);
+        channels.push_back(yof);
+        channels.push_back(xof);
 
-                cv::Mat out;
-                cv::merge(channels, out);
+        cv::Mat out;
+        cv::merge(channels, out);
 
 //                if (threaded_imgwrite){
 //                    ImageItem ii;
@@ -761,25 +906,56 @@ void ImageWriter::run()
 //                }
 
 
-                //std::cout << flowFileFull.toStdString().c_str() << std::endl << std::flush;
-            }
+        //std::cout << flowFileFull.toStdString().c_str() << std::endl << std::flush;
+    return out;
+}
 
+//**************************************************************************************
+//      ImageWriter
+//**************************************************************************************
+void ImageWriter::run()
+{
+    vector<int> p;
+    p.push_back(CV_IMWRITE_JPEG_QUALITY);
+    p.push_back(95); // compression factor
 
-            if (1){
-                    Mat imgX_, imgY_, image_;
+    isRunning = 1;
 
-                    imgX_ = img_resize(imgX, img.new_size, img.resize_type);
-                    imgY_ = img_resize(imgY, img.new_size, img.resize_type);
-                    image_ = img_resize(img.image, img.new_size, img.resize_type);
+    while(isRunning)  {
+        ImageItem img;
+        imageQueue->popWait(img);
+       // int left = imageQueue->size();
 
-                    imwrite(img.filename_flowx.toStdString(), imgX_, p);
-                    imwrite(img.filename_flowy.toStdString(), imgY_, p);
-                    imwrite(img.filename.toStdString(), image_, p);
+        // Output optical x,y flow images
+        if (img.filename_flowx != ""){
+            Mat imgX(img.flow_x.size(), CV_8UC1);
+            Mat imgY(img.flow_y.size(), CV_8UC1);
 
-            }
+            convertFlowToImage(img.flow_x, img.flow_y, imgX, imgY, -img.bound, img.bound);
 
+            Mat imgX_, imgY_;
+            imgX_ = img_resize(imgX, img.new_size, img.resize_type);
+            imgY_ = img_resize(imgY, img.new_size, img.resize_type);
 
+            imwrite(img.filename_flowx.toStdString(), imgX_, p);
+            imwrite(img.filename_flowy.toStdString(), imgY_, p);
         }
+
+        // Output RGB flow image
+        if (img.filename_flow != ""){
+            //cv::Mat rgbFlow = flowToRGB(img.flow_x, img.flow_y);
+            cv::Mat rgbFlow = motionToColor(img.flow_x, img.flow_y, 20.0);
+            cv::Mat rgbFlow_ = img_resize(rgbFlow, img.new_size, img.resize_type);
+            imwrite(img.filename_flow.toStdString(), rgbFlow_, p);
+        }
+
+
+        // Write out RGB image
+        if (img.filename != ""){
+            cv::Mat image_ = img_resize(img.image, img.new_size, img.resize_type);
+            imwrite(img.filename.toStdString(), image_, p);
+        }
+
     }
 
 }
