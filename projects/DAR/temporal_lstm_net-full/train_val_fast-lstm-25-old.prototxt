@@ -1,0 +1,289 @@
+name: "flow_fc6_lstm"
+
+#iteration = 13000
+
+layer {
+  name: "data"
+  type: "NPYData"
+  top: "data"
+  top: "cont_label"
+#  top: "input_label"
+  top: "target_label"
+  include { phase: TRAIN }
+  npy_data_param {
+	  # stride = 1
+#    source: "../train_flow_fc6_lstm_25-10.txt"
+    source: "../train_flow_fc6_lstm_25-10-rnd.txt"
+    #source: "../train_flow_fc6_lstm_5-100.txt"
+    #new_height: 256
+    #new_width: 320
+
+    # e.g. 10 streams of 16 timestamps. stream1(16)-stream2(16)-stream3(16)...stream10(16)
+    # Batch size is 160=10*16
+    # Eeach stream (of 16 timestamps) must have the same labels!! since it belongs to the same sequence
+    # Each stream (sequences) get unrolled to the LSTM
+#    batch_size: 1800 # 18*4
+    batch_size: 2500 # 18*4
+    #shuffle: true
+  }
+}
+
+layer {
+  name: "data"
+  type: "NPYData"
+  top: "data"
+  top: "cont_label"
+#  top: "input_label"
+  top: "target_label"
+  include { phase: TEST }
+  npy_data_param {
+#    source: "../val_flow_fc6_lstm_25-10.txt"
+    source: "../val_flow_fc6_lstm_25-10-rnd.txt"
+    #source: "../val_flow_fc6_lstm_18-10.txt"
+    #new_height: 256
+    #new_width: 320
+
+    # e.g. 10 streams of 16 timestamps. stream1(16)-stream2(16)-stream3(16)...stream10(16)
+    # Batch size is 160=10*16
+    # Eeach stream (of 16 timestamps) must have the same labels!! since it belongs to the same sequence
+    # Each stream (sequences) get unrolled to the LSTM
+    batch_size: 2500 # 50*10*10
+    #shuffle: true
+  }
+}
+
+
+#---------------------------------------------------------------
+#---------------------------------------------------------------
+#layer {
+  #name: "relu6"
+  #type: "ReLU"
+  #bottom: "fc6"
+  #top: "fc6"
+#}
+#layer {
+  #name: "drop6"
+  #type: "Dropout"
+  #bottom: "fc6"
+  #top: "fc6"
+  #dropout_param {
+    #dropout_ratio: 0.9
+  #}
+#}
+#layer {
+  #name: "fc7"
+  #type: "InnerProduct"
+  #bottom: "fc6"
+  #top: "fc7"
+  #param {
+    #lr_mult: 1
+    #decay_mult: 1
+  #}
+  #param {
+    #lr_mult: 2
+    #decay_mult: 0
+  #}
+  #inner_product_param {
+    #num_output: 4096
+  #}
+#}
+
+#layer {
+  #name: "fc7"
+  #type: "InnerProduct"
+  #bottom: "data"
+  #top: "fc7"
+  #param {
+    #lr_mult: 1
+    #decay_mult: 1
+  #}
+  #param {
+    #lr_mult: 2
+    #decay_mult: 0
+  #}
+  #inner_product_param {
+    #num_output: 4096
+
+    #bias_filler {
+      #type: "constant"
+      #value: 0.0001
+    #}
+    #weight_filler {
+      #type: "xavier"
+    #}    
+  #}
+#}
+
+#layer {
+  #name: "relu7"
+  #type: "ReLU"
+  #bottom: "data"
+  #top: "fc7"
+#}
+#layer {
+  #name: "drop7"
+  #type: "Dropout"
+  #bottom: "data"
+  #top: "data"
+  #dropout_param {
+    #dropout_ratio: 0.9
+  #}
+#}
+#-------------------------------------------------------------
+# Reshaping for input to LSTM
+
+layer{
+  name: "fc7-reshape"
+  type: "Reshape"
+  bottom: "data"
+  top: "fc7-reshape"
+  reshape_param{
+    shape{
+      dim: 25	 # Number of timestamps = batch length
+      dim: -1    # Number of streams in the batch
+      dim: 4096  # LSTM time unit data 
+    }
+  }
+  include: { phase: TEST}
+  include: { phase: TRAIN}
+}
+
+layer{
+  name: "cont_label-reshape"
+  type: "Reshape"
+  bottom: "cont_label"
+  top: "cont_label-reshape"
+  reshape_param{
+    shape{
+      dim: 25	# Labels for each time stamp. Zero means begining ofa new sequence
+      dim: -1	# .. and for each stream in the batch
+    }
+  }
+  include: { phase: TEST }
+  include: { phase: TRAIN}
+}
+
+layer{
+  name: "target_label-reshape"
+  type: "Reshape"
+  bottom: "target_label"
+  top: "target_label-reshape"
+  reshape_param{
+    shape{
+      dim: 25
+      dim: -1
+    }
+  }
+  include: { phase: TEST }
+  include: { phase: TRAIN }
+}
+
+#-------------------------------------------------------------
+
+layer {
+  name: "lstm1"
+  type: "LSTM"
+  bottom: "fc7-reshape"
+  bottom: "cont_label-reshape"
+  top: "lstm1"
+  recurrent_param {
+    num_output: 512
+    weight_filler {
+      type: "uniform"
+      min: -0.08
+      max: 0.08
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+
+layer {
+  name: "drop-lstm1"
+  type: "Dropout"
+  bottom: "lstm1"
+  top: "lstm1"
+  dropout_param {
+    dropout_ratio: 0.9
+  }
+}
+
+
+#--------------------------------------------------------------
+layer {
+  name: "predict"
+  type: "InnerProduct"
+  bottom: "lstm1"
+  top: "predict"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    # Set number of output to guarantee that class 101 is included
+    num_output: 101
+    weight_filler {
+      type: "uniform"
+      min: -0.08
+      max: 0.08
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+    axis: 2
+  }
+}
+
+layer {
+  name: "cross_entropy_loss"
+  type: "SoftmaxWithLoss"
+  bottom: "predict"
+  bottom: "target_label-reshape"
+  top: "entropy_loss"
+
+  include { phase: TRAIN }
+  include { phase: TEST }
+  loss_weight: 1
+  loss_param {
+    # Ignore 0 since it is only an indicator of the frame sequence start
+    # Since this isn't captioning, all clips will have the same number of frames, so the 
+    # need to predict the pad label is unnecessary.  However, the 0 label cannot be removed
+    # because it is a required sequence indicator.
+    #ignore_label: 0 
+  }
+  softmax_param {
+    axis: 2
+  }
+}
+layer {
+  name: "softmax"
+  type: "Softmax"
+  bottom: "predict"
+  top: "softmax"
+  include { phase: TEST }
+  softmax_param {
+    axis:  2
+  }
+}
+layer {
+  name: "accuracy"
+  type: "Accuracy"
+  bottom: "softmax"
+  bottom: "target_label-reshape"
+  top: "accuracy"
+  include { phase: TEST }
+  accuracy_param {
+    axis: 2
+    #ignore_label: 0 
+    top_k: 1
+  }
+}
+

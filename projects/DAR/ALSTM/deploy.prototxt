@@ -1,0 +1,126 @@
+name: "var_lstm"
+
+input: "data"
+input_shape { dim: 40 dim: 1 dim: 58368 }
+input: "continuity_label"
+input_shape { dim: 40 dim: 1 }
+input: "target_label"
+input_shape { dim: 40 dim: 1 }
+
+layer {
+  name: "Silence"
+  type: "Silence"
+  bottom: "target_label"
+}
+
+#--------------------------------------------------------
+layer {
+  name: "lstm1"
+  type: "LSTM"
+  bottom: "data"
+  bottom: "continuity_label"
+  top: "lstm1"
+  recurrent_param {
+    num_output: 512
+    weight_filler {
+      type: "uniform"
+      min: -0.08
+      max: 0.08
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "drop1"
+  type: "Dropout"
+  bottom: "lstm1"
+  top: "lstm1"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+}
+
+layer {
+  name: "lstm2"
+  type: "LSTM"
+  bottom: "lstm1"
+  bottom: "continuity_label"
+  top: "lstm2"
+  recurrent_param {
+    num_output: 512
+    weight_filler {
+      type: "uniform"
+      min: -0.08
+      max: 0.08
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "drop2"
+  type: "Dropout"
+  bottom: "lstm2"
+  top: "lstm2"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+}
+
+#--------------------------------------------------------------
+layer {
+  name: "predict"
+  type: "InnerProduct"
+  bottom: "lstm2"
+  top: "predict"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    # Set number of output to guarantee that class 101 is included
+    num_output: 102
+    weight_filler {
+      type: "uniform"
+      min: -0.08
+      max: 0.08
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+    axis: 2
+  }
+}
+layer {
+  name: "softmax"
+  type: "Softmax"
+  bottom: "predict"
+  top: "softmax"
+  softmax_param {
+    axis:  2
+  }
+}
+layer {
+  name: "accuracy"
+  type: "Accuracy"
+  bottom: "softmax"
+  bottom: "target_label"
+  top: "accuracy"
+  accuracy_param {
+    axis: 2
+    ignore_label: 0 
+    top_k: 1
+  }
+}

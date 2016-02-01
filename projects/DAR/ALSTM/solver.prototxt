@@ -1,0 +1,23 @@
+net: "train_val_fast.prototxt"
+
+test_iter: 500 
+test_interval: 3000
+base_lr: 0.0002
+#base_lr: 0.0008
+lr_policy: "inv"
+#stepsize: 5000
+gamma: 0.0001
+power: 0.75
+display: 100
+max_iter: 100000
+momentum: 0.9
+weight_decay: 0.0005
+
+snapshot: 10000
+snapshot_prefix: "snapshot"
+
+
+solver_mode: GPU
+random_seed: 101
+average_loss: 100
+solver_type: NESTEROV

@@ -1,0 +1,30 @@
+net: "train_val_fast-fc.prototxt"
+
+test_iter: 100
+test_interval: 500
+
+# initial
+base_lr: 0.01
+
+#lr_policy: "inv"
+lr_policy: "step"
+stepsize: 10000
+gamma: 0.1
+#gamma: 0.0001
+#power: 0.75
+display: 50
+max_iter: 100000
+momentum: 0.9
+weight_decay: 0.0005
+#weight_decay: 0.0005
+
+snapshot: 10000
+snapshot_prefix: "snapshot"
+
+solver_mode: GPU
+random_seed: 1701
+average_loss: 100
+#solver_type: NESTEROV
+solver_type: ADAM
+#momentum2: 0.999
+

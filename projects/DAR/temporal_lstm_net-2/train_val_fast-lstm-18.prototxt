@@ -1,0 +1,237 @@
+name: "flow_fc6_lstm"
+
+
+layer {
+  name: "data"
+  type: "NPYData"
+  top: "data"
+  top: "cont_label"
+#  top: "input_label"
+  top: "target_label"
+  include { phase: TRAIN }
+  npy_data_param {
+	  # stride = 1
+#    source: "../train_flow_fc6_lstm_12-50.txt" 
+#    source: "../train_flow_fc6_lstm_30-10.txt" # ok
+#    source: "../train_flow_fc6_lstm_15-30.txt" 
+
+    #source: "../train_flow_fc6_lstm_10-100.txt"
+    #batch_size: 1000 
+        
+    source: "../train_flow_fc6_lstm_18-50.txt"
+    batch_size: 900 
+
+    #source: "../train_flow_fc6_lstm_25-20.txt"
+    #batch_size: 500
+
+    # e.g. 10 streams of 16 timestamps. stream1(16)-stream2(16)-stream3(16)...stream10(16)
+    # Batch size is 160=10*16
+    # Eeach stream (of 16 timestamps) must have the same labels!! since it belongs to the same sequence
+    # Each stream (sequences) get unrolled to the LSTM
+#    batch_size: 1800 # 18*4
+#    batch_size: 360 # 18*4
+    #shuffle: true
+  }
+}
+
+layer {
+  name: "data"
+  type: "NPYData"
+  top: "data"
+  top: "cont_label"
+#  top: "input_label"
+  top: "target_label"
+  include { phase: TEST }
+  npy_data_param {
+
+    #source: "../val_flow_fc6_lstm_10-100.txt"
+    #batch_size: 1000 
+        
+    source: "../val_flow_fc6_lstm_18-50.txt"
+    batch_size: 900 
+
+    #source: "../val_flow_fc6_lstm_25-20.txt"
+    #batch_size: 500
+  }
+}
+
+
+layer{
+  name: "fc7-reshape"
+  type: "Reshape"
+  bottom: "data"
+  top: "fc7-reshape"
+  reshape_param{
+    shape{
+      dim: 18	 # Number of timestamps = batch length
+      dim: -1    # Number of streams in the batch
+      dim: 4096  # LSTM time unit data 
+    }
+  }
+  include: { phase: TEST}
+  include: { phase: TRAIN}
+}
+
+layer{
+  name: "cont_label-reshape"
+  type: "Reshape"
+  bottom: "cont_label"
+  top: "cont_label-reshape"
+  reshape_param{
+    shape{
+      dim: 18	# Labels for each time stamp. Zero means begining ofa new sequence
+      dim: -1	# .. and for each stream in the batch
+    }
+  }
+  include: { phase: TEST }
+  include: { phase: TRAIN}
+}
+
+layer{
+  name: "target_label-reshape"
+  type: "Reshape"
+  bottom: "target_label"
+  top: "target_label-reshape"
+  reshape_param{
+    shape{
+      dim: 18
+      dim: -1
+    }
+  }
+  include: { phase: TEST }
+  include: { phase: TRAIN }
+}
+
+#-------------------------------------------------------------
+layer {
+  name: "lstm1"
+  type: "LSTM"
+  bottom: "fc7-reshape"
+  bottom: "cont_label-reshape"
+  top: "lstm1"
+  recurrent_param {
+    num_output: 128
+    weight_filler {
+      type: "uniform"
+      min: -0.08
+      max: 0.08
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+
+#layer {
+  #name: "drop-lstm1"
+  #type: "Dropout"
+  #bottom: "lstm1"
+  #top: "lstm1"
+  #dropout_param {
+    #dropout_ratio: 0.9
+  #}
+#}
+
+#layer {
+  #name: "lstm2"
+  #type: "LSTM"
+  #bottom: "lstm1"
+  #bottom: "cont_label-reshape"
+  #top: "lstm2"
+  #recurrent_param {
+    #num_output: 128
+    #weight_filler {
+      #type: "uniform"
+      #min: -0.08
+      #max: 0.08
+    #}
+    #bias_filler {
+      #type: "constant"
+      #value: 0
+    #}
+  #}
+#}
+
+
+layer {
+  name: "drop-lstm2"
+  type: "Dropout"
+  bottom: "lstm1"
+  top: "lstm1-drop"
+  dropout_param {
+    dropout_ratio: 0.90
+  }
+}
+
+
+#--------------------------------------------------------------
+layer {
+  name: "predict"
+  type: "InnerProduct"
+  bottom: "lstm1-drop"
+  top: "predict"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 102
+    
+    bias_filler {
+      type: "constant"
+      value: 0.0001
+    }
+    weight_filler {
+      type: "xavier"
+    }    
+    axis: 2
+  }
+}
+
+layer {
+  name: "cross_entropy_loss"
+  type: "SoftmaxWithLoss"
+  bottom: "predict"
+  bottom: "target_label-reshape"
+  top: "entropy_loss"
+
+  include { phase: TRAIN }
+  include { phase: TEST }
+  loss_weight: 1
+  loss_param {
+    ignore_label: 101 
+  }
+  softmax_param {
+    axis: 2
+  }
+}
+layer {
+  name: "softmax"
+  type: "Softmax"
+  bottom: "predict"
+  top: "softmax"
+  include { phase: TEST }
+  softmax_param {
+    axis:  2
+  }
+}
+layer {
+  name: "accuracy"
+  type: "Accuracy"
+  bottom: "softmax"
+  bottom: "target_label-reshape"
+  top: "accuracy"
+  include { phase: TEST }
+  accuracy_param {
+    axis: 2
+    ignore_label: 101 
+    top_k: 1
+  }
+}
+

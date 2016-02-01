@@ -1,0 +1,50 @@
+net: "train_val_fast.prototxt"
+
+test_iter: 200
+test_interval: 500
+
+# Best  Iteration 13000-best
+# initial
+base_lr: 0.005
+
+# tuning 
+#base_lr: 0.0001
+
+# after 50k
+#base_lr: 0.0002
+
+# after 75k
+# Added dropout for lstm 0.3
+# reduced dropout for fc5 0.9->0.5
+#base_lr: 0.00025
+
+#lr_policy: "inv"
+lr_policy: "step"
+stepsize: 3000
+gamma: 0.1
+#gamma: 0.0001
+#power: 0.75
+display: 20
+max_iter: 100000
+momentum: 0.9
+
+# initial 
+weight_decay: 0.005
+
+# tuning
+#weight_decay: 0.008
+
+#weight_decay: 0.0005
+#regularization_type: "L1"
+
+snapshot: 1000
+snapshot_prefix: "snapshot"
+
+solver_mode: GPU
+random_seed: 101
+average_loss: 100
+#solver_type: NESTEROV
+#solver_type: ADAM
+#momentum2: 0.999
+#test_initialization: false
+

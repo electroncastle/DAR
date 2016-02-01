@@ -1,0 +1,163 @@
+name: "var_lstm"
+layer {
+  name: "data"
+  type: "HDF5Data"
+  top: "data"
+  top: "continuity_label"
+#  top: "input_label"
+  top: "target_label"
+  include {phase: TRAIN}
+  hdf5_data_param {
+    source: "../train-sp-3.txt"
+    # Batch size should equal number of timesteps
+    batch_size: 40
+    #shuffle: true
+  }
+} 
+layer {
+  name: "data"
+  type: "HDF5Data"
+  top: "data"
+  top: "continuity_label"
+#  top: "input_label"
+  top: "target_label"
+  include {phase: TEST}
+  hdf5_data_param {
+    source: "../val-sp-3.txt"
+    batch_size: 40
+    #shuffle: true
+  }
+}
+
+#-------------------------------------------------------------
+layer {
+  name: "lstm1"
+  type: "LSTM"
+  bottom: "data"
+  bottom: "continuity_label"
+  top: "lstm1"
+  recurrent_param {
+    num_output: 512
+    weight_filler {
+      type: "uniform"
+      min: -0.08
+      max: 0.08
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "drop1"
+  type: "Dropout"
+  bottom: "lstm1"
+  top: "lstm1"
+  dropout_param {
+    dropout_ratio: 0.0
+  }
+}
+
+layer {
+  name: "lstm2"
+  type: "LSTM"
+  bottom: "lstm1"
+  bottom: "continuity_label"
+  top: "lstm2"
+  recurrent_param {
+    num_output: 512
+    weight_filler {
+      type: "uniform"
+      min: -0.08
+      max: 0.08
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "drop2"
+  type: "Dropout"
+  bottom: "lstm2"
+  top: "lstm2"
+  dropout_param {
+    dropout_ratio: 0.0
+  }
+}
+
+#--------------------------------------------------------------
+layer {
+  name: "predict"
+  type: "InnerProduct"
+  bottom: "lstm2"
+  top: "predict"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    # Set number of output to guarantee that class 101 is included
+    num_output: 102
+    weight_filler {
+      type: "uniform"
+      min: -0.08
+      max: 0.08
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+    axis: 2
+  }
+}
+layer {
+  name: "cross_entropy_loss"
+  type: "SoftmaxWithLoss"
+  bottom: "predict"
+  bottom: "target_label"
+  top: "cross_entropy_loss"
+  include { phase: TRAIN }
+  loss_weight: 1
+  loss_param {
+    # Ignore 0 since it is only an indicator of the frame sequence start
+    # Since this isn't captioning, all clips will have the same number of frames, so the 
+    # need to predict the pad label is unnecessary.  However, the 0 label cannot be removed
+    # because it is a required sequence indicator.
+    ignore_label: 0 
+  }
+  softmax_param {
+    axis: 2
+  }
+}
+layer {
+  name: "softmax"
+  type: "Softmax"
+  bottom: "predict"
+  top: "softmax"
+  include { phase: TEST }
+  softmax_param {
+    axis:  2
+  }
+}
+layer {
+  name: "accuracy"
+  type: "Accuracy"
+  bottom: "softmax"
+  bottom: "target_label"
+  top: "accuracy"
+  include { phase: TEST }
+  accuracy_param {
+    axis: 2
+    ignore_label: 0 
+    top_k: 1
+  }
+}
