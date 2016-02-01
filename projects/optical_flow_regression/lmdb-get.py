@@ -18,17 +18,23 @@ import cv2
 
 import re, fileinput, math
 
-if 'DAR_ROOT' not in os.environ:
-    print 'FATAL ERROR. DAR_ROOT not set'
-    sys.exit()
+# if 'DAR_ROOT' not in os.environ:
+#     print 'FATAL ERROR. DAR_ROOT not set'
+#     sys.exit()
 
-caffe_root = os.environ['DAR_ROOT']
+#caffe_root = os.environ['DAR_ROOT']
+
+caffe_root = '/home/jiri/Lake/DAR/'
+os.environ['DAR_ROOT'] = caffe_root
 sys.path.insert(0, caffe_root + '/src/caffe/python')
 import caffe
 import caffe.io
 from caffe.proto import caffe_pb2
 
 import utils
+
+sys.path.insert(0, '/home/jiri/Lake/DAR/src/ofEval/build-debug/')
+import ofEval_module as em
 
 def mkdir_p(path):
     try:
@@ -129,33 +135,73 @@ def show_of(data, wnd_name):
     # cv2.waitKey(0)
 
 
-def show_img(data):
+def show_img(name, data):
     global wnd_x
     global wnd_y
 
     if data == None:
         return
 
-    image = data.astype(np.uint8)
-
-    if image.shape[0] == 6:
+    if data.shape[0] == 6:
+        image = data.astype(np.uint8)
         img = image.transpose(1,2,0)
         img1 = img[:,:,:3]
         img2 = img[:,:,3:]
+    elif data.shape[0] == 3:
+        image = data.astype(np.uint8)
+        img1 = (data[0]+1.0)*127.0
+        img2 = (data[1]+1.0)*127.0
+        img3 = (data[2]+2.0)*70.0
+        img1 = img1.astype(np.uint8)
+        img2 = img2.astype(np.uint8)
+        img3 = img3.astype(np.uint8)
+
+        img = data.astype(np.float32)
+
+        clr_flow = em.flowToColor(img[0], img[1], 0)
+        cv2.imshow(" Flow", clr_flow)
+
+        imout = cv2.normalize(data[2], None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
+        imout_clr = cv2.applyColorMap(imout, cv2.COLORMAP_JET)
+        cv2.imshow('spatial', imout_clr)
+
     else:
-        img1 = image[0]
-        img2 = image[1]
+        # Most likely x/y flow fields
+        img1 = data[0]
+        img2 = data[1]
 
-    filename = 'img-1.jpg'
+        img = data.astype(np.float32)
+        #img = data.astype(np.float32)/255.0-0.5
+        clr_flow = em.flowToColor(img[0], img[1], 0)
+        filename = name+'-flow.jpg'
+        cv2.imwrite(filename, clr_flow)
+        cv2.imshow(filename, clr_flow)
+        wnd_x+=300
+        cv2.moveWindow(filename,  wnd_x, wnd_y)
+
+        # save x/y flow fields
+        img = (img * 10.0)+127
+        img = img.astype(np.uint8)
+        filename = name+'-x-flow.jpg'
+        cv2.imwrite(filename, img[0])
+        filename = name+'-y-flow.jpg'
+        cv2.imwrite(filename, img[1])
+
+
+        wnd_x=10
+        wnd_y+=300
+        return
+
+    filename = name+'-img-1.jpg'
     cv2.imwrite(filename, img1)
-    cv2.imshow("IMG 1", img1)
-    cv2.moveWindow("IMG 1", wnd_x, wnd_y)
+    cv2.imshow(filename, img1)
+    cv2.moveWindow(filename, wnd_x, wnd_y)
 
-    filename = 'img-2.jpg'
+    filename = name+'-img-2.jpg'
     cv2.imwrite(filename, img2)
-    cv2.imshow("IMG 2", img2)
+    cv2.imshow(filename, img2)
     wnd_x+=300
-    cv2.moveWindow("IMG 2",  wnd_x, wnd_y)
+    cv2.moveWindow(filename,  wnd_x, wnd_y)
 
     wnd_x=10
     wnd_y+=300
@@ -177,7 +223,8 @@ def get_data(value):
     else:
         data = np.fromstring(datum.data, dtype=np.uint8).reshape(datum.channels, datum.height, datum.width)
 
-    #print data.shape
+    print data.shape
+    print "Label: ",datum.label
 
     return data
 
@@ -191,9 +238,14 @@ def get_image(lmdb_label_name, id, show_stats):
 
     print lmdb_env.info()
 
+    count = 0
+    for key, value in lmdb_cursor:
+        count += 1
+        #print count,'  ',(key)
+        #data = get_data(value)
+
     if show_stats:
         mean_val = 0.0
-        count = 0
         for key, value in lmdb_cursor:
             count += 1
             #print count,'  ',(key)
@@ -209,10 +261,26 @@ def get_image(lmdb_label_name, id, show_stats):
     data = get_data(value)
     print "min/max  ",data.min(), '  ',data.max()
 
+    # Get mirrored image
+    print "Num images: ",count
+    #return data, None
+
+    mid = '{:0>10d}'.format(count/2+int(id))
+    print "Orig id: ", id
+    print "Mirror id: ", mid
+    lmdb_cursor.get(mid) # '{:0>10s}'.format('_6')
+
+    value = lmdb_cursor.value()
+#       key = lmdb_cursor.key()
+
+    data2 = get_data(value)
+    print "min/max  ",data2.min(), '  ',data2.max()
+
+
     lmdb_cursor.first()
     lmdb_env.close()
 
-    return data
+    return data, data2, id, mid
 
 
 if __name__ == "__main__":
@@ -244,12 +312,22 @@ if __name__ == "__main__":
         print sys.argv[0],'  <lmdb_name> [<key>]'
         sys.exit(0)
 
+    counter=0
+    while True:
+        wnd_x=10
+        wnd_y=10
 
-    img_data = get_image(img_db, key, show_stats)
-    of_data = get_image(labels_db, key, show_stats)
+        k = '{:0>10d}'.format(counter+int(key))
+        img_data, img_data2, id, mid = get_image(img_db, k, show_stats)
+        #of_data = get_image(labels_db, key, show_stats)
 
-    show_img(img_data)
-    show_of(of_data, 'GT')
+        show_img("orig-"+id, img_data)
+        show_img("mirror-"+mid, img_data2)
+        #show_of(of_data, 'GT')
 
-    cv2.waitKey(0)
+        if cv2.waitKey(0) & 0x0EFFFFF == ord('q'):
+            sys.exit()
+
+        cv2.destroyAllWindows()
+        counter+=1
 

@@ -55,6 +55,8 @@ def config_deconf_layer(net, layers):
         filt /= np.linalg.norm(filt)
         net.params[l][0].data[range(m), range(k), :, :] = filt
 
+        print "------------------------------------"
+        print l
         print filt
 
     return
@@ -75,15 +77,80 @@ def expand_data_channels(src_net, dst_net, multiplier):
     new_weights = None
     zero = np.zeros((3,3,3))
 
-    if 0:
+    if 1:
         for f in range(0, weights.shape[0]):
             channel_weights = np.append(weights[f], weights[f], axis=0)        
             if new_weights == None:
-            	new_weights = np.array([channel_weights])
+                new_weights = np.array([channel_weights])
             else:
-            	new_weights = np.append(new_weights, [channel_weights], axis=0)
+                new_weights = np.append(new_weights, [channel_weights], axis=0)
     else:
-    	for f in range(0, weights.shape[0]):
+        for f in range(0, weights.shape[0]):
+            channel_weights = np.append(weights[f  ], zero, axis=0)
+            if new_weights == None:
+                new_weights = np.array([channel_weights])
+            else:
+                new_weights = np.append(new_weights, [channel_weights], axis=0)
+
+
+        for f in range(0, weights.shape[0]):
+            channel_weights = np.append(zero, weights[f], axis=0)
+            new_weights = np.append(new_weights, [channel_weights], axis=0)
+
+    print "New weights: ", new_weights.shape
+    print "Target shape: ", dst_net.params['conv1'][0].data.shape
+
+    # Set new weights
+    dst_net.params['conv1'][0].data[...] = new_weights
+
+    # Set new biases
+    # dst_net.params['conv1'][1].data[...] = np.append(biases.copy(), biases.copy())
+    dst_net.params['conv1'][1].data[...] = biases.copy()
+
+    return
+
+
+def expand_data_channels_alex(src_net, dst_net, multiplier, new_size):
+
+    # Vector of biases, one for each filter
+    # e.g. shape (64,)
+    biases = src_net.params['conv1'][1].data
+
+    # Filters [batch, channels, height, width]
+    # e.g. shape (64, 3, 3, 3)
+    weights = src_net.params['conv1'][0].data
+
+    bw_dst = False
+    if  dst_net.params['conv1'][0].data.shape[1] == 2:
+        # There are only two input channels it must be monochrome type
+        bw_dst = True
+        pass
+
+    # Duplicate RGB channels twice as we are gonna feed the CNN
+    # with two images
+    new_weights = None
+    zero = np.zeros((3,11,11))
+
+    if 1:
+        for f in range(0, weights.shape[0]):
+            new_filter = cv2.resize(weights[f].transpose(1,2,0), (new_size, new_size)).transpose(2,0,1)
+            if bw_dst:
+                channel_weights = new_filter.mean(axis=0)
+#                channel_weights /= channel_weights.sum()
+                channel_weights = channel_weights[np.newaxis, :, :]
+                channel_weights = np.append(channel_weights, channel_weights, axis=0)
+            else:
+                channel_weights = np.append(new_filter, new_filter, axis=0)
+    #            channel_weights = new_filter.copy()
+
+
+#            channel_weights = np.append(weights[f], weights[f], axis=0)
+            if new_weights == None:
+                new_weights = np.array([channel_weights])
+            else:
+                new_weights = np.append(new_weights, [channel_weights], axis=0)
+    else:
+        for f in range(0, weights.shape[0]):
             channel_weights = np.append(weights[f  ], zero, axis=0)
             if new_weights == None:
                 new_weights = np.array([channel_weights])
@@ -95,16 +162,17 @@ def expand_data_channels(src_net, dst_net, multiplier):
         	channel_weights = np.append(zero, weights[f], axis=0)
         	new_weights = np.append(new_weights, [channel_weights], axis=0)
 
-    print new_weights.shape
+    print "new wieghts: ",new_weights.shape
+    print "destination: ",dst_net.params['conv1'][0].data.shape
 
     # Set new weights
     dst_net.params['conv1'][0].data[...] = new_weights
 
     # Set new biases
-    dst_net.params['conv1'][1].data[...] = np.append(biases.copy(), biases.copy())
+    # dst_net.params['conv1'][1].data[...] = np.append(biases.copy(), biases.copy())
+    dst_net.params['conv1'][1].data[...] = biases.copy()
 
     return
-
 
 
 def fc_to_conv(src_net, dst_net):
@@ -124,6 +192,7 @@ def fc_to_conv(src_net, dst_net):
     # check params
     for pr in params_full_conv_:
         if pr in dst_net.params:
+            print "Converting to FC: => ",pr
             params_full_conv.append(pr)
         else:
             print "Layer ",pr,' does not exist in target networ. Skipping...',
@@ -228,20 +297,24 @@ def test_net(net):
     net.forward()
 
 
-if __name__ == "__main__":
-
-    cwd = os.getcwd()
-#     os.chdir("/home/jiri/Lake/DAR/projects/optical_flow_regression/OFR_VGG16_6_fc_x8")
-#     os.chdir("/home/jiri/Lake/DAR/projects/optical_flow_regression/FCN32")
-#     os.chdir("/home/jiri/Lake/DAR/projects/optical_flow_regression/OFR_VGG16_6_fc14")
-# #     os.chdir("/home/jiri/Lake/DAR/projects/optical_flow_regression/OFR_VGG16_6_hist")
-#     os.chdir("/home/jiri/Lake/DAR/projects/optical_flow_regression/OFR_VGG16_6_hist-1")
+def go(src_net):
 
     # Load the net, list its data and params, and filter an example image.
+    caffe.set_device(1)
     caffe.set_mode_gpu()
+    net = None
+
+    # VGG16
     net = caffe.Net('/home/jiri/Lake/DAR/projects/optical_flow_regression/models-proto/VGG_CNN_M_2048_OFR/VGG_ILSVRC_16_layers_deploy.prototxt',
-                    '/home/jiri/Lake/DAR/projects/optical_flow_regression/models-proto/VGG_CNN_M_2048_OFR/VGG_ILSVRC_16_layers.caffemodel',
-                    caffe.TEST)
+                     '/home/jiri/Lake/DAR/projects/optical_flow_regression/models-proto/VGG_CNN_M_2048_OFR/VGG_ILSVRC_16_layers.caffemodel',
+                     caffe.TEST)
+
+    # Alex Next
+    # net = caffe.Net('/home/jiri/Lake/DAR/src/caffe/models/bvlc_reference_caffenet/deploy.prototxt',
+    #                 '/home/jiri/Lake/DAR/src/caffe/models/bvlc_reference_caffenet/bvlc_reference_caffenet_new.caffemodel',
+    #                 caffe.TEST)
+
+#    net.save('/home/jiri/Lake/DAR/src/caffe/models/bvlc_reference_caffenet/bvlc_reference_caffenet_new.caffemodel')
 
     #net = caffe.Net('/home/jiri/Lake/DAR/projects/UCF101-2stream/models-proto/two-streams-nvidia/vgg_16_flow_deploy.prototxt',
     #'/home/jiri/Lake/DAR/projects/UCF101-2stream/models-bin/cuhk_action_temporal_vgg_16_split1.caffemodel',
@@ -254,23 +327,33 @@ if __name__ == "__main__":
     #             '/home/jiri/Lake/DAR/projects/optical_flow_regression/OFR_VGG16_6_iter_0.caffemodel',
     #             caffe.TEST)
 
-#    new_net = caffe.Net('OFR_VGG16_6_fc_train_val_fast.prototxt',
-    new_net = caffe.Net('deploy.prototxt',
-#                     '/home/jiri/Lake/DAR/projects/optical_flow_regression/models-proto/VGG_CNN_M_2048_OFR/VGG_ILSVRC_16_layers.caffemodel',
-                    #'/home/jiri/Lake/DAR/projects/optical_flow_regression/OFR_VGG16_6_fc_iter_0.caffemodel',
-                caffe.TEST)
+
+
+
+    if src_net=="":
+        new_net = caffe.Net('deploy.prototxt', caffe.TEST)
+    else:
+        new_net = caffe.Net('deploy.prototxt',
+#                            src_net,
+                        '/home/jiri/Lake/DAR/projects/optical_flow_regression/models-proto/VGG_CNN_M_2048_OFR/VGG_ILSVRC_16_layers.caffemodel',
+    #                      'snapshot_iter_13000.caffemodel',
+                        #'/home/jiri/Lake/DAR/projects/optical_flow_regression/OFR_VGG16_6_fc_iter_0.caffemodel',
+                    caffe.TEST)
+
 
     #print new_net.params['upscore'][0].data[range(2), range(2), :, :]
 
-    print "Source network"
-    print("blobs {}\nparams {}".format(net.blobs.keys(), net.params.keys()))
+    if net!=None:
+        print "Source network"
+        print("blobs {}\nparams {}".format(net.blobs.keys(), net.params.keys()))
 
     print "Target network"
     print("blobs {}\nparams {}".format(new_net.blobs.keys(), new_net.params.keys()))
 
 
     # The new model will have twice the number of channels as the original
-    #expand_data_channels(net, new_net, 2)
+    #expand_data_channels_alex(net, new_net, 2, 7)
+    expand_data_channels(net, new_net, 2)
     #copy_layers(net, new_net, ['conv1_2'])
 
     if 1:
@@ -279,6 +362,7 @@ if __name__ == "__main__":
 
         # Preload bilinear interpolation filter to all layers with 'up' in name
         interp_layers = [k for k in new_net.params.keys() if 'up' in k]
+        #interp_layers =['upsample-final-28']
         print interp_layers
         config_deconf_layer(new_net, interp_layers)
 
@@ -294,5 +378,23 @@ if __name__ == "__main__":
     # Block execution
     # show(block=True)
 
+
+if __name__ == "__main__":
+    cwd = os.getcwd()
+#     os.chdir("/home/jiri/Lake/DAR/projects/optical_flow_regression/OFR_VGG16_6_fc_x8")
+#     os.chdir("/home/jiri/Lake/DAR/projects/optical_flow_regression/FCN32")
+#     os.chdir("/home/jiri/Lake/DAR/projects/optical_flow_regression/OFR_VGG16_6_fc14")
+# #     os.chdir("/home/jiri/Lake/DAR/projects/optical_flow_regression/OFR_VGG16_6_hist")
+#     os.chdir("/home/jiri/Lake/DAR/projects/optical_flow_regression/OFR_VGG16_6_hist-1")
+#     os.chdir("/home/jiri/Lake/DAR/projects/optical_flow_regression/OFR_VGG16_6_hist-1")
+
+    src_net=""
+    if len(sys.argv) > 1:
+        src_net=sys.argv[1]
+
+    go(src_net)
+
+
     os.chdir(cwd)
+
 

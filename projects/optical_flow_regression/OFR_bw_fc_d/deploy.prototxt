@@ -1,7 +1,7 @@
 name: "deploy"
 input: "data"
 input_dim: 1
-input_dim: 2
+input_dim: 6
 input_dim: 224
 input_dim: 224
 
@@ -11,11 +11,11 @@ layer {
   bottom: "data"
   top: "conv1"
   param {
-    lr_mult: 0
-    decay_mult: 0
+    lr_mult: 1
+    decay_mult: 1
   }
   param {
-    lr_mult: 0
+    lr_mult: 2
     decay_mult: 0
   }
   convolution_param {

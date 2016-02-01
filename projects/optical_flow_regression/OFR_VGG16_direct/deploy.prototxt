@@ -1,83 +1,12 @@
-name: "OFR_FlowNet"
-layer {
-  name: "data"
-  type: "Data"
-  top: "data"
-  include {
-    phase: TRAIN
-  }
-  transform_param {
-    mean_value: 83.0
-    mean_value: 83.0
-    mean_value: 83.0
-    mean_value: 83.0
-    mean_value: 83.0
-    mean_value: 83.0
-#    mean_value: 110.0
-  }
-  data_param {
-    source: "../train-of-imgs-rgb-mpi_clean_final_90_10"
+name: "OFR_VGG16_6_fc14"
+input: "data"
+input_dim: 1
+input_dim: 6
+input_dim: 224
+input_dim: 224
 
-    batch_size: 32
-    backend: LMDB
-  }
-}
-layer {
-  name: "label"
-  type: "Data"
-  top: "label"
-  include {
-    phase: TRAIN
-  }
-  transform_param {
-    mean_value: 217.0
-  }
-  data_param {
-    source: "../train-of-labels-rgb-mpi_clean_final_90_10"
-    batch_size: 32
-    backend: LMDB
-  }
-}
-
-#----------------------- TEST ---------------------------
-layer {
-  name: "data"
-  type: "Data"
-  top: "data"
-  include {
-    phase: TEST
-  }
-  transform_param {
-    mean_value: 83.0
-    mean_value: 83.0
-    mean_value: 83.0
-    mean_value: 83.0
-    mean_value: 83.0
-    mean_value: 83.0
-  }
-  data_param {
-    source: "../val-of-imgs-rgb-mpi_clean_final_90_10"
-    batch_size: 10
-    backend: LMDB
-  }
-}
-layer {
-  name: "label"
-  type: "Data"
-  top: "label"
-  include {
-    phase: TEST
-  }
-  transform_param {
-    mean_value: 217.0
-  }
-  data_param {
-    source: "../val-of-labels-rgb-mpi_clean_final_90_10"
-    batch_size: 10
-    backend: LMDB
-  }
-}
-
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
 #-----------------------------------------------------------------
 layer {
   name: "conv1"
@@ -258,9 +187,7 @@ layer {
     num_output: 256
     pad: 1
     kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
+
   }
 }
 layer {
@@ -286,9 +213,7 @@ layer {
     num_output: 256
     pad: 1
     kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
+
   }
 }
 layer {
@@ -325,9 +250,7 @@ layer {
     num_output: 512
     pad: 1
     kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
+
   }
 }
 layer {
@@ -353,9 +276,7 @@ layer {
     num_output: 512
     pad: 1
     kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
+
   }
 }
 layer {
@@ -381,9 +302,7 @@ layer {
     num_output: 512
     pad: 1
     kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
+
   }
 }
 layer {
@@ -420,9 +339,7 @@ layer {
     num_output: 512
     pad: 1
     kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
+
   }
 }
 layer {
@@ -448,9 +365,7 @@ layer {
     num_output: 512
     pad: 1
     kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
+
   }
 }
 layer {
@@ -476,9 +391,7 @@ layer {
     num_output: 512
     pad: 1
     kernel_size: 3
-    weight_filler {
-      type: "xavier"
-    }
+
   }
 }
 layer {
@@ -487,16 +400,25 @@ layer {
   bottom: "conv5_3"
   top: "conv5_3"
 }
-
+layer {
+  name: "pool5"
+  type: "Pooling"
+  bottom: "conv5_3"
+  top: "pool5"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
 
 #-----------------------------------------------
 # Pretrained: fc6
 layer {
-  name: "fc6-conv"
-  type: "Convolution"
-  bottom: "conv5_3"
-  top: "fc6-conv"
-
+  name: "fc6"
+  type: "InnerProduct"
+  bottom: "pool5"
+  top: "fc6"
   param {
     lr_mult: 1
     decay_mult: 1
@@ -505,12 +427,8 @@ layer {
     lr_mult: 2
     decay_mult: 0
   }
-
-  convolution_param {
+  inner_product_param {
     num_output: 4096
-    kernel_size: 1
-    pad: 0
-
     bias_filler {
       type: "constant"
       value: 0.0001
@@ -520,30 +438,21 @@ layer {
     }
   }
 }
-
 layer {
   name: "relu6"
   type: "ReLU"
-  bottom: "fc6-conv"
-  top: "fc6-conv"
+  bottom: "fc6"
+  top: "fc6"
 }
-layer {
-  name: "drop6"
-  type: "Dropout"
-  bottom: "fc6-conv"
-  top: "fc6-conv"
-  dropout_param {
-    dropout_ratio: 0.2
-  }
-}
+
 
 #-----------------------------------------------
 # Pretrained: fc7
 layer {
-  name: "fc7-conv"
-  type: "Convolution"
-  bottom: "fc6-conv"
-  top: "fc7-conv"
+  name: "fc7-1"
+  type: "InnerProduct"
+  bottom: "fc6"
+  top: "fc7-1"
   param {
     lr_mult: 1
     decay_mult: 1
@@ -552,224 +461,60 @@ layer {
     lr_mult: 2
     decay_mult: 0
   }
+  inner_product_param {
+    num_output: 3072
 
-  convolution_param {
-    num_output: 4096
-    kernel_size: 1
-    bias_filler {
-      type: "constant"
-      value: 0.0001
-    }
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "relu7"
-  type: "ReLU"
-  bottom: "fc7-conv"
-  top: "fc7-conv"
-}
-layer {
-  name: "drop7"
-  type: "Dropout"
-  bottom: "fc7-conv"
-  top: "fc7-conv"
-  dropout_param {
-    dropout_ratio: 0.2
   }
 }
 
-#-----------------------------------------------
-# Pretrained: fc8
-layer {
-  name: "fc8-conv"
-  type: "Convolution"
-  bottom: "fc7-conv"
-  top: "fc8-conv"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-
-  convolution_param {
-    num_output: 3
-    kernel_size: 1
-
-    bias_filler {
-      type: "constant"
-      value: 0.0001
-    }
-    weight_filler {
-      type: "xavier"
+#----------------------------------------------------------------
+  layer {
+    name: "reshape"
+    type: "Reshape"
+    bottom: "fc7-1"
+    top: "reshape"
+    reshape_param {
+      shape {
+        dim: 0  # copy the dimension from below
+        dim: 3
+        dim: 32
+        dim: 32 #-1 # infer it from the other dimensions
+      }
     }
   }
-}
-
-#-------------------------------------------------------
-# Deconvolution 
-#-------------------------------------------------------
-
-# --------------------------------------------------
-# Branch A
-# --------------------------------------------------
 
 layer {
-  name: "upscore2"
+  name: "upscore-1"
   type: "Deconvolution"
-  bottom: "fc8-conv"
-  top: "upscore2"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  convolution_param {
-    num_output: 3
-    bias_term: false
-    kernel_size: 4
-    stride: 2
-    pad: 1
-  }
-
-}
-
-layer {
-  name: "score-pool4"
-  type: "Convolution"
-  bottom: "pool3"
-  top: "score-pool4"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  convolution_param {
-    num_output: 3
-    kernel_size: 1
-    engine: CAFFE
-  }
-}
-layer { type: 'Crop' name: 'crop' bottom: 'score-pool4' bottom: 'upscore2'
-  top: 'score-pool4c' }
-  
-layer {
-  name: "fuse"
-  type: "Eltwise"
-  bottom: "upscore2"
-  bottom: "score-pool4c"
-  top: "score-fused"
-  eltwise_param {
-    operation: SUM
-  }
-}
-layer {
-  name: "upsample-fused-16"
-  type: "Deconvolution"
-  bottom: "score-fused"
-  top: "score4"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  
-    
-  convolution_param {
-    num_output: 3
-    bias_term: false
-    kernel_size: 4
-    stride: 2
-    pad: 1
-  }
-    
-}
-
-# --------------------------------------------------
-# Branch B
-# --------------------------------------------------
-layer {
-  name: "score-pool3"
-  type: "Convolution"
-  bottom: "pool2"
-  top: "score-pool3"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-  convolution_param {
-    num_output: 3
-    kernel_size: 1
-    engine: CAFFE
-  }
-}
-layer { type: 'Crop' name: 'crop' bottom: 'score-pool3' bottom: 'score4'
-  top: 'score-pool3c' }
-  
-layer {
-  name: "fuse"
-  type: "Eltwise"
-  bottom: "score4"
-  bottom: "score-pool3c"
-  top: "score-final"
-  eltwise_param {
-    operation: SUM
-  }
-}
-layer {
-  name: "upsample-1"
-  type: "Deconvolution"
-  bottom: "score-final"
-  top: "bigscore"
+  bottom: "reshape"
+  top: "upscore-1"
   param {
     lr_mult: 0
   }
-  
   convolution_param {
     num_output: 3
     bias_term: false
-    kernel_size: 8
-    stride: 4
-    pad: 2
-  }
-     
-#  convolution_param {
-#    num_output: 3
-#    bias_term: false
 
 #    kernel_size: {{2 * factor - factor % 2}} 
 #    stride: {{factor}}
-#    kernel_size: 32
-#    stride: 16
+    kernel_size: 13
+    stride: 7
 #    group: {{C}}
 #    pad: {{ceil((factor - 1) / 2.)}}
-#    pad: 8
+    pad: 3
 #    weight_filler: { 
 #	type: "bilinear" 
 #    } 
-#  }
-
+  }
 }
-layer { type: 'Crop' name: 'crop' bottom: 'bigscore' bottom: 'data' top: 'score' }
+
+#layer { 
+#  type: 'Crop' 
+#  name: 'score' 
+#  top: 'score'
+#  bottom: 'upscore' 
+ # bottom: 'data' 
+#}
 
 
-#--------------------------------------------------------------------------
-layer {
-  name: "mse"
-  type: "EuclideanLoss"
-  bottom: "score"
-  bottom: "label"
-  top: "mse"
-#  include: { phase: TEST }
-}
 

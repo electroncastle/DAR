@@ -11,6 +11,6 @@
 # 
 #
 
-python ${DAR_ROOT}/python/draw_net.py deploy.prototxt network.pdf --rankdir TB
+python ${DAR_ROOT}/python/draw_net.py ${1} network.pdf --rankdir TB
 
 

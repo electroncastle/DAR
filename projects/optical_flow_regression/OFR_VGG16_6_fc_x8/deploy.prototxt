@@ -1,11 +1,12 @@
-name: "deploy"
+name: "OFR_VGG16_6_fc14"
 input: "data"
 input_dim: 1
 input_dim: 6
 input_dim: 224
 input_dim: 224
 
-#-----------------------------------------------------------------
+
+
 layer {
   name: "conv1"
   type: "Convolution"
@@ -21,7 +22,7 @@ layer {
   }
   convolution_param {
     num_output: 64
-    pad: 100
+    pad: 1
     kernel_size: 3
     weight_filler {
       type: "xavier"
@@ -414,24 +415,14 @@ layer {
   bottom: "conv5_3"
   top: "conv5_3"
 }
-layer {
-  name: "pool5"
-  type: "Pooling"
-  bottom: "conv5_3"
-  top: "pool5"
-  pooling_param {
-    pool: MAX
-    kernel_size: 2
-    stride: 2
-  }
-}
+
 
 #-----------------------------------------------
 # Pretrained: fc6
 layer {
   name: "fc6-conv"
   type: "Convolution"
-  bottom: "pool5"
+  bottom: "conv5_3"
   top: "fc6-conv"
 
   param {
@@ -445,9 +436,8 @@ layer {
 
   convolution_param {
     num_output: 4096
-    kernel_size: 7
-    pad: 1
-    stride: 1
+    kernel_size: 1
+    pad: 0
 
     bias_filler {
       type: "constant"
@@ -464,15 +454,6 @@ layer {
   type: "ReLU"
   bottom: "fc6-conv"
   top: "fc6-conv"
-}
-layer {
-  name: "drop6"
-  type: "Dropout"
-  bottom: "fc6-conv"
-  top: "fc6-conv"
-  dropout_param {
-    dropout_ratio: 0.5
-  }
 }
 
 #-----------------------------------------------
@@ -509,22 +490,14 @@ layer {
   bottom: "fc7-conv"
   top: "fc7-conv"
 }
-layer {
-  name: "drop7"
-  type: "Dropout"
-  bottom: "fc7-conv"
-  top: "fc7-conv"
-  dropout_param {
-    dropout_ratio: 0.5
-  }
-}
 
-#---------------------------------------------
+#-----------------------------------------------
+# Pretrained: fc8
 layer {
-  name: "score59"
+  name: "fc8-conv"
   type: "Convolution"
   bottom: "fc7-conv"
-  top: "score59"
+  top: "fc8-conv"
   param {
     lr_mult: 1
     decay_mult: 1
@@ -533,32 +506,52 @@ layer {
     lr_mult: 2
     decay_mult: 0
   }
+
   convolution_param {
-    num_output: 2
+    num_output: 3
     kernel_size: 1
-    engine: CAFFE
+
+    bias_filler {
+      type: "constant"
+      value: 0.0001
+    }
+    weight_filler {
+      type: "xavier"
+    }
   }
 }
+
+#-------------------------------------------------------
+# Deconvolution 
+#-------------------------------------------------------
+
+# --------------------------------------------------
+# Branch A
+# --------------------------------------------------
+
 layer {
   name: "upscore2"
   type: "Deconvolution"
-  bottom: "score59"
+  bottom: "fc8-conv"
   top: "upscore2"
   param {
     lr_mult: 1
     decay_mult: 1
   }
   convolution_param {
-    num_output: 2
+    num_output: 3
     bias_term: false
     kernel_size: 4
     stride: 2
+    pad: 1
   }
+
 }
+
 layer {
   name: "score-pool4"
   type: "Convolution"
-  bottom: "pool4"
+  bottom: "pool3"
   top: "score-pool4"
   param {
     lr_mult: 1
@@ -569,14 +562,14 @@ layer {
     decay_mult: 0
   }
   convolution_param {
-    num_output: 2
+    num_output: 3
     kernel_size: 1
     engine: CAFFE
   }
 }
 layer { type: 'Crop' name: 'crop' bottom: 'score-pool4' bottom: 'upscore2'
   top: 'score-pool4c' }
-
+  
 layer {
   name: "fuse"
   type: "Eltwise"
@@ -596,17 +589,25 @@ layer {
     lr_mult: 1
     decay_mult: 1
   }
+  
+    
   convolution_param {
-    num_output: 2
+    num_output: 3
     bias_term: false
     kernel_size: 4
     stride: 2
+    pad: 1
   }
+    
 }
+
+# --------------------------------------------------
+# Branch B
+# --------------------------------------------------
 layer {
   name: "score-pool3"
   type: "Convolution"
-  bottom: "pool3"
+  bottom: "pool2"
   top: "score-pool3"
   param {
     lr_mult: 1
@@ -617,13 +618,14 @@ layer {
     decay_mult: 0
   }
   convolution_param {
-    num_output: 2
+    num_output: 3
     kernel_size: 1
     engine: CAFFE
   }
 }
 layer { type: 'Crop' name: 'crop' bottom: 'score-pool3' bottom: 'score4'
   top: 'score-pool3c' }
+  
 layer {
   name: "fuse"
   type: "Eltwise"
@@ -635,19 +637,37 @@ layer {
   }
 }
 layer {
-  name: "upsample"
+  name: "upsample-1"
   type: "Deconvolution"
   bottom: "score-final"
   top: "bigscore"
   param {
     lr_mult: 0
   }
+  
   convolution_param {
-    num_output: 2
+    num_output: 3
     bias_term: false
-    kernel_size: 16
-    stride: 8
+    kernel_size: 8
+    stride: 4
+    pad: 2
   }
+     
+#  convolution_param {
+#    num_output: 3
+#    bias_term: false
+
+#    kernel_size: {{2 * factor - factor % 2}} 
+#    stride: {{factor}}
+#    kernel_size: 32
+#    stride: 16
+#    group: {{C}}
+#    pad: {{ceil((factor - 1) / 2.)}}
+#    pad: 8
+#    weight_filler: { 
+#	type: "bilinear" 
+#    } 
+#  }
+
 }
 layer { type: 'Crop' name: 'crop' bottom: 'bigscore' bottom: 'data' top: 'score' }
-

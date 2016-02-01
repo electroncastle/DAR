@@ -345,7 +345,7 @@ def classSpatial(net, video_path):
     return allClasses
 
 # @profile
-def classTemporal(net, video_path):
+def classTemporal(net, video_path, stride=0):
 
     samples = 25 # Number of frame across the video to sample
 
@@ -489,10 +489,10 @@ def go(gpuid, flow, no_out):
     #rgb_model = app_dir+'/models-bin/cuhk_action_spatial_vgg_16_split1.caffemodel'
 
     dataset_dir = dar_root+'/share/datasets/'
-    rgbflow_path = dataset_dir+'/UCF-101/UCF101-rgbflow/'
-    #rgbflow_path = dataset_dir+'/UCF-101/ucf101_flow_img_tvl1_gpu/'
+    rgb_path = dataset_dir+'/UCF-101/UCF101-rgbflow/'
+    flow_path = dataset_dir+'/UCF-101/ucf101_flow_img_tvl1_gpu/'
 
-    video_path = rgbflow_path+'/FloorGymnastics/v_FloorGymnastics_g16_c04'
+    video_path = rgb_path+'/FloorGymnastics/v_FloorGymnastics_g16_c04'
     #video_path = rgbflow_path+'/Shotput/v_Shotput_g05_c07'
     #video_path = '/home/jiri/Lake/HAR/datasets/UCF-101/UCF101-rgbflow/Diving/v_Diving_g22_c06'
     #video_path = '/home/jiri/Lake/HAR/datasets/UCF-101/UCF101-rgbflow/IceDancing/v_IceDancing_g03_c03'
@@ -510,11 +510,14 @@ def go(gpuid, flow, no_out):
     except:
         return
 
-    test_videos = loadTestVideos(test_data_filename, rgbflow_path)
+    if flow:
+        test_videos = loadTestVideos(test_data_filename, flow_path)
+    else:
+        test_videos = loadTestVideos(test_data_filename, rgb_path)
 
     #caffe.set_mode_cpu()
-    caffe.set_mode_gpu()
     caffe.set_device(gpuid)
+    caffe.set_mode_gpu()
 
     if flow:
         outFilename = test_result_flow_filename
@@ -540,7 +543,7 @@ def go(gpuid, flow, no_out):
     for v in range(0, test_video_len):
 
         test_video = test_videos[v]
-        test_video[1] = video_path
+        #test_video[1] = video_path
 
         videoDir = test_video[1].split('/')
         videoDir = videoDir[len(videoDir)-1].strip()
@@ -599,8 +602,8 @@ if __name__ == "__main__":
         dry_run = sys.argv[2] == 'v'
 
     if run_type == 't':
-        go(0, True, dry_run)	# Temporal
+        go(1, True, dry_run)	# Temporal
 
     if run_type == 's':
-        go(1, False, dry_run) # Spatial
+        go(0, False, dry_run) # Spatial
 

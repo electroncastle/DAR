@@ -1677,9 +1677,11 @@ I0811 23:32:51.960445  9014 video_data_layer.cpp:85] output data size: 64,3,224,
 I0811 23:32:52.511203  9014 parallel.cpp:436] Starting Optimization
 I0811 23:32:52.511262  9014 solver.cpp:310] Solving CUHK_Action_SpatialNet
 I0811 23:32:52.511270  9014 solver.cpp:311] Learning Rate Policy: step
+I0811 23:33:18.622819  9014 solver.cpp:228] Iteration 0, loss = 2.66783
+I0811 23:33:20.299089  9014 solver.cpp:552] Iteration 0 (17.9938/s), lr = 0.001
 I0811 23:32:52.511292  9014 solver.cpp:355] Iteration 500, Testing net (#0)
 I0811 23:33:12.800559  9014 solver.cpp:404]     Test net output #0: accuracy = 0.683529
-I0811 23:33:12.800593  9014 solver.cpp:404]     Test net output #1: loss = 1.28168 (* 1 = 1.28168 loss)
+I0811 23:33:12.800593  9014 solver.cpp:404]     Test net output #1: loss = 2.28168 (* 1 = 1.28168 loss)
 I0811 23:33:18.622819  9014 solver.cpp:228] Iteration 500, loss = 1.66783
 I0811 23:33:20.299089  9014 solver.cpp:552] Iteration 500 (17.9938/s), lr = 0.001
 I0811 23:35:24.103965  9014 solver.cpp:228] Iteration 520, loss = 1.40419

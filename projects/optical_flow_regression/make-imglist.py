@@ -71,7 +71,7 @@ def build_image_list(path, of_path, train_filename, val_filename, maxLen = None,
     # Split into train and val datasets
     random.shuffle(imgList)
     listLen = len(imgList)
-    trainSize = int(listLen*0.7)
+    trainSize = int(listLen*0.9)
 
     trainFile = open(train_filename, 'wt')
     for i in range(0, trainSize):
@@ -98,4 +98,4 @@ if __name__ == "__main__":
 
     offlow_path = '/home/jiri/Lake/DAR/share/datasets/MPI_Sintel/training/flow/'
 
-    build_image_list(img_path, offlow_path, 'train_of_src_clean_final.txt', 'val_of_src_clean_final.txt')
+    build_image_list(img_path, offlow_path, 'train_of_src_clean_final_90_10.txt', 'val_of_src_clean_final_90_10.txt')

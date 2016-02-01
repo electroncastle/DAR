@@ -1,3 +1,6 @@
+#!/usr/bin/python
+
+
 import os
 import io
 import sys
@@ -10,6 +13,8 @@ import threading
 import time
 from multiprocessing import Pool
 from skimage.util.shape import view_as_blocks
+import glob
+import gc
 
 if 'DAR_ROOT' not in os.environ:
     print 'FATAL ERROR. DAR_ROOT not set, exiting'
@@ -20,8 +25,9 @@ app_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 
 sys.path.insert(0, dar_root + '/python')
 import caffe
-
 import cv2
+
+
 
 
 class VideoActionDetector(object):
@@ -33,12 +39,13 @@ class VideoActionDetector(object):
         self.gpuid = 0
         self.threadLock = threading.Lock()
         self.transformer = None
+        self.fps = 30.0
 
         self.flow_channels = 20  # 10 x + 10 y optical flow frames
-        self.flow_batch_size = 50
+        self.flow_batch_size = 160
 
         self.rgb_channels = 3
-        self.rgb_batch_size = 50
+        self.rgb_batch_size = 150
 
         # Target image shape for detection
         self.width = 224
@@ -55,6 +62,9 @@ class VideoActionDetector(object):
 
         self.labels = []
         self.dry_run = False
+
+        self.extract_fc6 = False
+        self.extract_fc7 = False
 
     def update_path(self):
         # Common
@@ -75,27 +85,34 @@ class VideoActionDetector(object):
 
     def set_path(self):
         self.flow_proto = app_dir+'/models-proto/two-streams-nvidia/vgg_16_flow_deploy.prototxt'
-        self.flow_model = app_dir+'/models-bin/two-streams_16_split1_flow-nvidia_iter_26000.caffemodel'
+#        self.flow_model = app_dir+'/models-bin/two-streams_16_split1_flow-nvidia_iter_26000.caffemodel'
         self.flow_model = app_dir+'/models-bin/cuhk_action_temporal_vgg_16_split1.caffemodel'
+
+        # self.flow_proto = app_dir+'/flow_net/vgg_16_flow_deploy.prototxt'
+        # self.flow_model = app_dir+'/flow_net/two-streams_16_split1_flow-nvidia_iter_23048.caffemodel'
 
         self.rgb_proto = app_dir+'/models-proto/two-streams-nvidia/vgg_16_rgb_deploy.prototxt'
         self.rgb_model = app_dir+'/models-bin/two-streams_vgg_16_split1_rgb-nvidia_iter_10000.caffemodel'
-        # self.rgb_model = app_dir+'/models-bin/cuhk_action_spatial_vgg_16_split1.caffemodel'
+        self.rgb_model = app_dir+'/models-bin/cuhk_action_spatial_vgg_16_split1.caffemodel'
 
 
         self.datasets_root = os.path.join(dar_root, 'share/datasets/')
 
-        if 0:
+        if 1:
             # UCF 101
             self.dataset_name = 'UCF-101'
             self.dataset_video = 'UCF101'
             self.dataset_rgbflow = 'UCF101-rgbflow/'
+            self.dataset_rgbflow = 'UCF101-flow/'
+            #self.dataset_rgbflow = 'ucf101_flow_img_tvl1_gpu/'
 
             self.video_name = 'v_FloorGymnastics_g16_c04'
             self.video_name = 'v_Shotput_g07_c01'
 
             self.video_ext = 'avi'
             self.class_name = 'Shotput'
+            self.class_name = '' # When reading videos from the val...txt or train.....txt files the class is already
+            # part of the path
 
             self.labels_file = os.path.join(self.datasets_root, self.dataset_name, 'labels-new.txt')
         else:
@@ -121,14 +138,16 @@ class VideoActionDetector(object):
 
         # input preprocessing: 'data' is the name of the input blob == net.inputs[0]
         transformer = caffe.io.Transformer({'data': dataShape})
+        #transformer = caffe.io.Transformer()
         transformer.set_transpose('data', (2,0,1))
         # transformer.set_mean('data', np.load(caffe_root + 'python/caffe/imagenet/ilsvrc_2012_mean.npy').mean(1).mean(1)) # mean pixel
 
         if meanImg != []:
             transformer.set_mean('data', meanImg) # mean pixel
 
+        # No need to mul by 255 when reading img by opencv
+        # No need to swap channels when reading image by opencv
         transformer.set_raw_scale('data', 255)  # the reference model operates on images in [0,255] range instead of [0,1]
-
         if rgb:
             transformer.set_channel_swap('data', (2,1,0))  # the reference model has channels in BGR order instead of RGB
 
@@ -145,16 +164,30 @@ class VideoActionDetector(object):
             imgFile = imageFiles[b]
             try:
                 img = caffe.io.load_image(imgFile, color)
+              #   if color:
+              #       flags = cv2.IMREAD_COLOR
+              #   else:
+              #       flags = cv2.IMREAD_GRAYSCALE
+              #   img = cv2.imread(imgFile, flags)
+              #   img = img[:,:,np.newaxis]
             except:
                 break
 
-            # img = transformer.preprocess('data', img)
-            channelsEx = img.shape[2]
-            for c in range(0, channelsEx):
-                batch.append(img[:,:,c])
+            #img = transformer.preprocess('data', img)
+            # channelsEx = img.shape[2]
+            # for c in range(0, channelsEx):
+            #     batch.append(img[:,:,c])
+
+            img = img.transpose(2,0,1)
+            if batch == []:
+                batch = img.copy()
+            else:
+                batch = np.vstack((batch, img))
+
 
         #self.threadLock.release()
-        return np.asarray(batch)
+#        return np.asarray(batch).astype(np.float32)
+        return batch
 
 
     def get_flow_sample(self, path, frame_id, channels):
@@ -186,7 +219,7 @@ class VideoActionDetector(object):
         return img_stack
 
 
-    # @profile
+    #@profile
     def transformStack(self, transformer, flowStack, crop, mirror, flow, mean_image):
 
         h = flowStack[0].shape[0]
@@ -231,20 +264,22 @@ class VideoActionDetector(object):
 
         # flowStackTrans = np.asarray(flowStackTrans)
 
-        if 1:
+        if not flow:
             batch = np.transpose(flowStackTrans, (1, 2, 0))
             data = transformer.preprocess('data', batch)
         else:
+            # no need to multiply by 255 when reading img by opencv
+            # batch = flowStackTrans
             batch = flowStackTrans*255.0
             data = np.subtract(batch, mean_image)
-            # data1 = np.add(batch, mean_image)
 
         return data
 
 
+    #@profile
     def detect_flow(self, samples):
 
-        self.flow_net.blobs['data'].reshape(self.flow_batch_size, self.flow_channels, self.width, self.height)
+        self.flow_net.blobs['data'].reshape(len(samples), self.flow_channels, self.width, self.height)
         self.flow_net.blobs['data'].data[...] = samples
 
         #print "Runnig forward pass"
@@ -256,7 +291,8 @@ class VideoActionDetector(object):
 
     def detect_rgb(self, samples):
 
-        self.rgb_net.blobs['data'].reshape(self.rgb_batch_size, self.rgb_channels, self.width, self.height)
+        # self.rgb_net.blobs['data'].reshape(self.rgb_batch_size, self.rgb_channels, self.width, self.height)
+        self.rgb_net.blobs['data'].reshape(samples.shape[0], self.rgb_channels, self.width, self.height)
         self.rgb_net.blobs['data'].data[...] = samples
 
         #print "Runnig forward pass"
@@ -267,6 +303,9 @@ class VideoActionDetector(object):
 
 
     def showResult(self, classes):
+
+        if classes is None:
+            return -1
 
         if  len(classes.shape) > 1:
             classResultAvg = np.sum(classes, 0)/classes.shape[0]
@@ -280,6 +319,8 @@ class VideoActionDetector(object):
             print self.labels[result], ' ', classResultAvg[result]
         else:
             print 'Unknown label ', classResultAvg[result]
+
+        return result
 
 
     def save_result(self, classes, filename):
@@ -335,14 +376,74 @@ class VideoActionDetector(object):
         return mean_image
 
 
+    def do_fc6_features_exists(self, batch_num):
+
+        tmpl = '%s/image_????.jpg' %(self.rgbflow_path)
+        spatial = glob.glob(tmpl)
+        spatial.sort()
+
+        missing = False
+        fid = 0
+        max_frames =  self.stride*(len(spatial) / self.stride)-(self.flow_channels/2)
+        while fid < max_frames:
+            stack_filename = self.rgbflow_path+'/fc6_{:0>4d}'.format(fid);
+            if not os.path.isfile(stack_filename+'.npy'):
+                missing = True
+                break
+            fid += self.stride
+
+        return not missing
+
+
+    def do_fc7_features_exists(self, batch_num):
+
+        tmpl = '%s/flow_x_????.jpg' %(self.rgbflow_path)
+        spatial = glob.glob(tmpl)
+        spatial.sort()
+
+        missing = False
+        fid = 0
+        max_frames =  self.stride*(len(spatial) / self.stride)-(self.flow_channels/2)
+        while fid < max_frames:
+            stack_filename = self.rgbflow_path+'/fc7_{:0>4d}'.format(fid);
+            if not os.path.isfile(stack_filename+'.npy'):
+                missing = True
+                break
+            fid += self.stride
+
+        return not missing
+
+
     #@profile
     def detect_temporal(self, device_id):
 
+        device_id = int(device_id)
+        if device_id<0:
+            device_id = 0
+
+        augmented_size = 10 # We generate 10 augmented samples
+        batch_num = self.flow_batch_size / augmented_size
+
+        tmpl = '%s/image_????.jpg' %(self.rgbflow_path)
+        video_frames = glob.glob(tmpl)
+        min_frames  = batch_num*self.flow_channels/2
+
+        if len(video_frames) < min_frames:
+            print "WARNING video ",self.rgbflow_path, " has less than ",min_frames
+            #print "Ignoring this video"
+            #return 0
+
+        if self.extract_fc7:
+            if self.do_fc7_features_exists(batch_num) and self.do_fc6_features_exists(batch_num):
+                print 'fc6/fc7 features already exists for: ',self.rgbflow_path
+                return 0, -1
+
         if not self.dry_run:
-            out_filename = os.path.join(self.rgbflow_path)+'/temporal-s5.txt'
+            out_filename = os.path.join(self.rgbflow_path)+'/temporal-s9.txt'
             if os.path.isfile(out_filename):
                 print 'Already exists: ',out_filename
-                return
+                #return 0, -1
+
 
         caffe.set_mode_gpu()
         caffe.set_device(device_id)
@@ -353,8 +454,6 @@ class VideoActionDetector(object):
         # Each samples get augmented in 10 transformations
         # 20 x 10 = 200
 
-        augmented_size = 10 # We generate 10 augmented samples
-        batch_num = self.flow_batch_size / augmented_size
 
         mean_image = self.get_flow_mean_image()
 
@@ -369,33 +468,56 @@ class VideoActionDetector(object):
         while True:
 
             samples = []
+            last_frame_id = 0
+            sid=0
+            batch_frame_id_start = frame_id
             for s in range(0, batch_num):
                 # print 'FLOW: Loading sample'
                 sample = self.get_flow_sample(self.rgbflow_path, frame_id, self.flow_channels)
+
                 if len(sample) != self.flow_channels:
+                    # pad the batch with dummy frames
+                    last_frame_id = frame_id+len(sample)
                     break
+
 
                 # Augment sample
                 start = time.time()
                 # print 'FLOW: Transforming sample'
                 for m in [True, False]:
                     for c in range(0,5):
-                        samples.append(self.transformStack(self.flow_transformer, sample, c, m, True, mean_image))
+                        data = self.transformStack(self.flow_transformer, sample, c, m, True, mean_image)
+                        if samples == []:
+                            samples = np.zeros((self.flow_batch_size, )+data.shape, dtype=np.float32)
+
+                        # if data.dtype != samples.dtype:
+                        #     print "type mismatch"
+                        #     sys.exit(0)
+
+                        samples[sid] = data
+                        sid+=1
+                        # samples.append(data)
 
                 frame_id += self.stride
                 end = time.time()
-                # print "FLOW loading & transformation took: ", (end - start)
+                #print "FLOW loading & transformation took: ", (end - start)
 
-
-            if len(samples) != self.flow_batch_size:
+#            if frame_id-self.stride >= len(video_frames):
+            if len(samples) == 0:
+                # No frames left
+                print "Finished..."
                 break
 
+            if sid < self.flow_batch_size:
+                samples = samples[:sid, :, :, :]
 
             # print 'FLOW: detecting'
+            # samples = np.asarray(samples)
             classes = self.detect_flow(samples)
 
             # Average results from augmented samples
-            for s in range(0, batch_num):
+            stacks = len(samples)/augmented_size
+            for s in range(0, stacks):
                 id = s*augmented_size
                 classAvg = np.sum(classes[id:id+augmented_size, :], 0)/augmented_size
                 # self.showResult(classes[id:id+augmented_size, :] )
@@ -406,18 +528,38 @@ class VideoActionDetector(object):
                 else:
                     self.classes_temporal = np.vstack([self.classes_temporal, classAvg])
 
+                # Save fc6/fc7 layer
+                if self.extract_fc7:
+                    fc_stack = self.flow_net.blobs['fc6'].data[id:id+augmented_size]
+                    fid = batch_frame_id_start + s*self.stride
+                    stack_filename = self.rgbflow_path+'/fc6_{:0>4d}'.format(fid);
+                    np.save(stack_filename, fc_stack)
 
-            ts = frame_id*1.0/30.0
+                if self.extract_fc7:
+                    fc_stack = self.flow_net.blobs['fc7'].data[id:id+augmented_size]
+                    fid = batch_frame_id_start + s*self.stride
+                    stack_filename = self.rgbflow_path+'/fc7_{:0>4d}'.format(fid);
+                    np.save(stack_filename, fc_stack)
+
+
+            ts = frame_id*1.0/self.fps
             print 'FLOW frame: ',frame_id,'  [', '%.3f' % ts, ']  ',
             self.showResult(classes)
 
+            # if last_frame_id > 0:
+            #     last_frame_id = frame_id-self.flow_channels
+            #     break
+            #
+            # if len(samples) != self.flow_batch_size:
+            #     print "Not processed frames: ", str(len(video_frames) - (last_frame_id) ),' out of ',str(len(video_frames))
+            #     break
 
             # if frame_id > 1000:
             #     break
 
             # threading._sleep(0.5)
 
-        self.showResult(self.classes_temporal)
+        label = self.showResult(self.classes_temporal)
 
 
 
@@ -425,15 +567,21 @@ class VideoActionDetector(object):
             [path, filename] = os.path.split(self.rgbflow_path)
             self.save_result(self.classes_temporal, out_filename)
 
+        return last_frame_id, label
+
 
     #@profile
     def detect_spatial(self, device_id):
+
+        device_id = int(device_id)
+        if device_id<0:
+            device_id = 1
 
         if not self.dry_run:
             out_filename = os.path.join(self.rgbflow_path)+'/spatial-s5.txt'
             if os.path.isfile(out_filename):
                 print 'Already exists: ',out_filename
-                return
+                return 0, -1
 
         caffe.set_mode_gpu()
         caffe.set_device(device_id)
@@ -461,7 +609,9 @@ class VideoActionDetector(object):
 
             # start = time.time()
 
-            samples = []
+            samples = None
+            batch_frame_id_start = frame_id
+            samples_num = 0
             for s in range(0, batch_num):
 
                 # print 'RGB: loading sample'
@@ -473,23 +623,40 @@ class VideoActionDetector(object):
                 # print 'RGB: Transforming sample'
                 for m in [True, False]:
                     for c in range(0,5):
-                        samples.append(self.transformStack(self.rgb_transformer, sample, c, m, False, mean_image))
+                        img_stack = self.transformStack(self.rgb_transformer, sample, c, m, False, mean_image)
+                        if samples is None:
+                            samples = np.zeros((self.rgb_batch_size, img_stack.shape[0], img_stack.shape[1], img_stack.shape[2]), dtype=np.float32)
+
+                        #samples[samples_num] = img_stack
+                        samples[samples_num, 0] = img_stack[0]
+                        samples[samples_num, 1] = img_stack[1]
+                        samples[samples_num, 2] = img_stack[2]
+                        samples_num += 1
 
                 frame_id += self.stride
 
-
-            if len(samples) != self.rgb_batch_size:
+            if samples_num == 0:
                 break
+
+            if samples_num != self.rgb_batch_size:
+                print "Smaller batch. ",len(samples)
+                samples = samples[:samples_num, :,:,:]
+                #break
+
+
 
             # end = time.time()
             # print "RGB loading & transformation took: ", (end - start)
 
             # print 'RGB: detecting'
+            #samples_np = np.asarray(samples, dtype=np.float32)
             classes = self.detect_rgb(samples)
 
 
             # Average results from augmented samples
-            for s in range(0, batch_num):
+            classAvg = None
+            batch_imgs = samples.shape[0]/augmented_size
+            for s in range(0, batch_imgs):
                 id = s*augmented_size
                 classAvg = np.sum(classes[id:id+augmented_size, :].transpose(),1)/augmented_size
 
@@ -497,6 +664,20 @@ class VideoActionDetector(object):
                     self.classes_spatial = classAvg.copy()
                 else:
                     self.classes_spatial = np.vstack([self.classes_spatial, classAvg])
+
+                # Save fc6/fc7 layer
+                if self.extract_fc7:
+                    fc_stack = self.rgb_net.blobs['fc6'].data[id:id+augmented_size]
+                    fid = batch_frame_id_start + s*self.stride
+                    stack_filename = self.rgbflow_path+'/fc6_rgb_{:0>4d}'.format(fid);
+                    np.save(stack_filename, fc_stack)
+
+                if self.extract_fc7:
+                    fc_stack = self.rgb_net.blobs['fc7'].data[id:id+augmented_size]
+                    fid = batch_frame_id_start + s*self.stride
+                    stack_filename = self.rgbflow_path+'/fc7_rgb_{:0>4d}'.format(fid);
+                    np.save(stack_filename, fc_stack)
+
 
 
             ts = frame_id*1.0/30.0
@@ -510,14 +691,14 @@ class VideoActionDetector(object):
 
             # threading._sleep(0.5)
 
-        self.showResult(self.classes_spatial)
+        label = self.showResult(self.classes_spatial)
 
 
         if not self.dry_run:
             [path, filename] = os.path.split(self.rgbflow_path)
             self.save_result(self.classes_spatial, out_filename)
 
-        return
+        return frame_id, label
 
 
     def th_test(self):
@@ -605,41 +786,13 @@ class myThread (threading.Thread):
 def nothing(x):
     pass
 
-def testSlider():
-    # Create a black image, a window
-    img = np.zeros((300,512,3), np.uint8)
-    cv2.namedWindow('image')
-
-    # create trackbars for color change
-    cv2.createTrackbar('R','image',0,255,nothing)
-    cv2.createTrackbar('G','image',0,255,nothing)
-    cv2.createTrackbar('B','image',0,255,nothing)
-
-    # create switch for ON/OFF functionality
-    switch = '0 : OFF \n1 : ON'
-    cv2.createTrackbar(switch, 'image',0,1,nothing)
-
-    while(1):
-        cv2.imshow('image',img)
-        k = cv2.waitKey(1) & 0xFF
-        if k == 27:
-            break
-
-        # get current positions of four trackbars
-        r = cv2.getTrackbarPos('R','image')
-        g = cv2.getTrackbarPos('G','image')
-        b = cv2.getTrackbarPos('B','image')
-        s = cv2.getTrackbarPos(switch,'image')
-
-        if s == 0:
-            img[:] = 0
-        else:
-            img[:] = [b,g,r]
-
-    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
+
+    gpuid = -1
+    if len(sys.argv) > 2:
+        gpuid = sys.argv[2]
 
     # thread1 = myThread(1, "XX", 1)
     # thread2 = myThread(2, "OO", 2)
@@ -655,7 +808,8 @@ if __name__ == "__main__":
 
     video = VideoActionDetector()
     video.set_path()
-    video.dry_run = False
+    video.dry_run = True
+    video.extract_fc7 = False
     # video.detect_temporal(0)
     # sys.exit(0)
 
@@ -663,7 +817,33 @@ if __name__ == "__main__":
     val_list_filename = dar_root+'/share/datasets/THUMOS2015/thumos15_validation/annotated.txt'
     val_list = np.loadtxt(val_list_filename, str, delimiter=' ')
 
-    for i in range(len(val_list)):
+    val_list_filename = dar_root+'/share/datasets/UCF-101/train-1-rnd.txt'
+    val_list_filename = dar_root+'/share/datasets/UCF-101/val-1-rnd.txt'
+    val_list = np.loadtxt(val_list_filename, str, delimiter=' ')
+
+    videos_label = [f[2] for f in val_list]
+    # Extract the path and fake the extension
+    val_list = [f[0]+'.mp4' for f in val_list]
+
+    from_video = 0
+    to_video = len(val_list)
+
+    #from_video = 3344
+    #to_video = 5000
+
+    total = 0
+    tp = 0
+
+    path_, clasification_result_filename = os.path.split(val_list_filename)
+    clasification_result_filename = 'classification-result-'+clasification_result_filename.split('-')[0]
+    if sys.argv[1] == 't':
+        clasification_result_filename += '-temporal'
+    if sys.argv[1] == 's':
+        clasification_result_filename += '-spatial'
+
+    clasification_result_filename += '.txt'
+    classification_result_file = open(clasification_result_filename, 'a')
+    for i in range(from_video, to_video):
 
         # if i == 4:
         #     break
@@ -684,15 +864,41 @@ if __name__ == "__main__":
 
         video.set_video_name(file)
 
-        print 'Processing: type=temporal video=', file
+        print 'Processing ('+str(i)+'/'+str(to_video)+'): type=temporal video=', file
 
+        #gc.disable()
         start = time.time()
+        processed_frames = 0
+
         if sys.argv[1] == 't':
-            video.detect_temporal(0)
+            processed_frames, label = video.detect_temporal(gpuid)
 
         if sys.argv[1] == 's':
-            video.detect_spatial(1)
+            processed_frames, label = video.detect_spatial(gpuid)
 
         end = time.time()
-        print "TOOK: ", (end - start)
+        #gc.collect()
+
+        took = (end - start)
+        fps = float(processed_frames)/took
+
+        flag = 'NA'
+        if label != -1:
+            if int(videos_label[i]) == label:
+                tp += 1
+                flag = 'OK'
+            else:
+                flag = 'FALSE'
+            total +=1
+
+        acc = 0
+        if (total>0):
+            acc = 100*(float(tp)/total)
+            record = str(i)+" "+str(round(acc, 2))+" "+flag+" "+str(videos_label[i])+" "+str(label)+" "+str(round(took,3))+" "+file+"\n"
+            classification_result_file.write(record)
+            classification_result_file.flush()
+        print "TOOK: ",str(took),'   fps: ',str(fps), " accuracy: ",acc
+
+
+    classification_result_file.close()
 

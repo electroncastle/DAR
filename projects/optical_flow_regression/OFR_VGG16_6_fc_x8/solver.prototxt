@@ -1,27 +1,57 @@
 net: "train_val_fast.prototxt"
-test_iter: 10
+test_iter: 100
 test_interval: 500
 
-#base_lr: 1e-10
-#base_lr: 1e-8 #2600
-#base_lr: 1e-10 #9500
-#lr_policy: "step"
+# Initialization
+# ADAM from 0-50000
+# with gamma 0.1 at 40000
+base_lr: 1e-6
 
-# lr for unnormalized softmax -- see train_val definition
-base_lr: 1e-14
-lr_policy: "fixed"
+# 0 - 39000
+# should be better to start with 1e-4
+#base_lr: 1e-5
+
+# resumed from 39000
+#base_lr: 1e-5
 
 
+# test: from 50000-
+#base_lr: 1e-7
+
+# ADAM from 40000-
+#base_lr: 1e-6
+
+# SGD test
+#base_lr: 1e-9
+
+# Used wtih NESTEROV from 60000
+# Not good
+#base_lr: 1e-9
+
+
+lr_policy: "step"
 gamma: 0.1
-stepsize: 10000
+stepsize: 3000
 display: 20
-max_iter: 80000
-momentum: 0.99
+max_iter: 5000000
+momentum: 0.9
 weight_decay: 0.0005
+#weight_decay: 0.000001
 snapshot: 1000
 snapshot_prefix: "snapshot"
 iter_size: 1
 #device_id: [0]
 test_initialization: true
+#average_loss: 61
+
 #solver_mode: CPU
-average_loss: 20
+solver_mode: GPU
+#solver_type: ADAGRAD
+
+#solver_type: NESTEROV
+
+solver_type: ADAM
+#delta: 1e-4
+momentum2: 0.999
+
+

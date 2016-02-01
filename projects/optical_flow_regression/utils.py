@@ -60,7 +60,24 @@ def read_flo(filename):
     return [width, height, x_flow, y_flow]
 
 
-def crop_scale(img, crop_offsets, crop_size, scale_size, scale_magnitude=0):
+def read_flo_fast(filename):
+    with open(filename, 'rb') as f:
+        magic = np.fromfile(f, np.float32, count=1)
+        if 202021.25 != magic:
+            print 'Magic number incorrect. Invalid .flo file'
+        else:
+            w = np.fromfile(f, np.int32, count=1)
+            h = np.fromfile(f, np.int32, count=1)
+            # print 'Reading %d x %d flo file' % (w, h)
+            data = np.fromfile(f, np.float32, count=2*w*h)
+            # Reshape data into 3D array (columns, rows, bands)
+            data2D = np.resize(data, (h, w, 2))
+            return [w,h, data2D[:,:,0], data2D[:,:,1]]
+
+    return [0, 0, [], []]
+
+
+def crop_scale(img, crop_offsets, crop_size, scale_size=None, scale_magnitude=0, mirror=False):
 
     width = img.shape[1]
     height = img.shape[0]
@@ -70,24 +87,33 @@ def crop_scale(img, crop_offsets, crop_size, scale_size, scale_magnitude=0):
         y_flow_scale = float(scale_size[1]) / height
 
     imgs = []
+    i = 0
     for crop in crop_offsets:
 
         of_y = crop[0]
         of_x = crop[1]
         img_dst = img[of_y:of_y + crop_size[1], of_x:of_x+crop_size[0]]
-        img_dst = cv2.resize(img_dst, (scale_size[0], scale_size[1]))
+        if not (scale_size==None or scale_size==[] or (scale_size[0] < 0 and scale_size[1] < 0)):
+            img_dst = cv2.resize(img_dst, (scale_size[0], scale_size[1]))
 
         if scale_magnitude == 1:
             img_dst *= x_flow_scale
         if scale_magnitude == 2:
             img_dst *= y_flow_scale
 
-        imgs.append(img_dst)
+        if mirror:
+            img_dst = np.fliplr(img_dst)
 
-    return np.asarray(imgs)
+        if imgs == []:
+            imgs = np.zeros(((len(crop_offsets),)+img_dst.shape), dtype=np.float32)
+
+        imgs[i] = img_dst
+        i += 1
+
+    return imgs
 
 
-def crop_scale_flow(xflow, yflow, crop_offsets, crop_size, scale_size):
+def crop_scale_flow(xflow, yflow, crop_offsets, crop_size, scale_size, mirror=False):
 
     width = xflow.shape[1]
     height = xflow.shape[0]
@@ -100,14 +126,19 @@ def crop_scale_flow(xflow, yflow, crop_offsets, crop_size, scale_size):
     crop_id=0
     for crop in crop_offsets:
 
+        # Crop
         of_y = crop[0]
         of_x = crop[1]
         x_flow_c = xflow[of_y:of_y + crop_size[1], of_x:of_x+crop_size[0]]
         y_flow_c = yflow[of_y:of_y + crop_size[1], of_x:of_x+crop_size[0]]
 
-
+        # Scale
         x_flow_small = cv2.resize(x_flow_c, (scale_size[0], scale_size[1])) * x_flow_scale
         y_flow_small = cv2.resize(y_flow_c, (scale_size[0], scale_size[1])) * y_flow_scale
+
+        if mirror:
+            y_flow_small = np.fliplr(y_flow_small)
+            x_flow_small = -1 * np.fliplr(x_flow_small)
 
         flows.append([x_flow_small, y_flow_small])
 

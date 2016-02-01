@@ -1,11 +1,11 @@
-name: "CUHK_Action_SpatialNet"
+name: "SpatialNet"
 layer {
   name: "data"
   type: "VideoData"
   top: "data"
   top: "label_local"
   video_data_param {
-    source: "/home/jiri/Lake/HAR/datasets/UCF-101/train-2-rnd.txt"
+    source: "/home/jiri/Lake/DAR/share/datasets/UCF-101/train-2-rnd.txt"
     batch_size: 64
     new_width: 340
     new_height: 256
@@ -30,7 +30,7 @@ layer {
   top: "data"
   top: "label_local"
   video_data_param {
-    source: "/home/jiri/Lake/HAR/datasets/UCF-101/val-2-rnd.txt"
+    source: "/home/jiri/Lake/DAR/share/datasets/UCF-101/val-2-rnd.txt"
     batch_size: 10
     new_length: 1
     new_height: 256

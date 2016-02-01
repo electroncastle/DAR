@@ -51,6 +51,18 @@ def segment(img_path):
     result = net.forward()
     out = net.blobs['score'].data[0].argmax(axis=0)
 
+
+    imout = result['score'][0,15]
+    dir, filename = os.path.split(img_path)
+    plt.imsave(filename+'-dtc.jpg', imout)
+    ims = np.asarray_chkfinite(im)
+    plt.imsave(filename, ims)
+    # cv2.normalize(imout, outrgb, )
+    #cv2.imshow('out', imout)
+    # cv2.imwrite(img_path+'dtc.jpg', imout)
+    #cv2.waitKey(0)
+
+    #return
     print out
 
     plt.subplot(1, 2, 1)
@@ -64,21 +76,21 @@ def segment(img_path):
 
 
 
-os.chdir('/home/jiri/Lake/DAR/projects/optical_flow_regression/FCN32/')
+os.chdir('/home/jiri/Lake/DAR/projects/optical_flow_regression/FCN8/')
 
 # load net
 net = caffe.Net(
 #                'deploy-orig.prototxt',
                 'deploy.prototxt',
                 #'deploy.prototxt',
-                #'fcn-8s-pascalcontext.caffemodel',
+                'fcn-8s-pascalcontext.caffemodel',
 #                'fcn-32s-pascalcontext.caffemodel',
 #                'snapshot_iter_2000.caffemodel',
-                'snapshot_iter_10001.caffemodel',
+#                'snapshot_iter_10001.caffemodel',
                 caffe.TEST)
 
 img_list = []
-if 0:
+if 1:
     root = '/home/jiri/Lake/DAR/share/datasets/THUMOS2015/thumos15_validation-rgbflow/thumos15_video_validation_0000122/'
 
     img_list = ['image_0659.jpg',
@@ -88,14 +100,24 @@ if 0:
                 'image_0663.jpg',
                 'image_0664.jpg'];
 
+    img_list = []
     for i in range(659, 700):
         img = 'image_{:0>4d}.jpg'.format(i)
-        img_list.append(os.path.join(root, img))
+        img_path = os.path.join(root, img)
+        img_list.append(img_path)
 else:
     img_list.append(img_path)
 
+img = '/home/jiri/Lake/DAR/share/datasets/UCF-101//UCF101-rgbflow//BreastStroke/v_BreastStroke_g05_c04/image_0079.jpg'
+segment(img)
+plt.waitforbuttonpress()
+sys.exit()
+
+print 'Start ',len(img_list), '  images'
 for img in img_list:
     segment(img)
-    plt.waitforbuttonpress()
+    # plt.waitforbuttonpress()
+
+print 'Stop'
 
 #plt.show(block=True)

@@ -1,4 +1,4 @@
-net: "../models/two-streams-nvidia/vgg_16_rgb_train_val_fast.prototxt"
+net: "../models-proto/two-streams-nvidia/vgg_16_rgb_train_val_fast.prototxt"
 test_iter: 170
 test_interval: 500
 base_lr: 0.001

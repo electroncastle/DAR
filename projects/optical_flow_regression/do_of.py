@@ -399,7 +399,7 @@ def get_lmdb_key(path):
 wnd_x=10
 wnd_y=10
 
-def show_of(data, wnd_name):
+def show_of(data, wnd_name, show):
     global wnd_x
     global wnd_y
 
@@ -412,10 +412,11 @@ def show_of(data, wnd_name):
         image = image.transpose(1,2,0)
         filename = 'flow-'+wnd_name+'.jpg'
         cv2.imwrite(filename, image)
-        cv2.imshow(wnd_name+" Flow RGB", image)
-        cv2.moveWindow(wnd_name+" Flow RGB", wnd_x, wnd_y)
-        wnd_x=10
-        wnd_y+=300
+        if show:
+           cv2.imshow(wnd_name+" Flow RGB", image)
+           cv2.moveWindow(wnd_name+" Flow RGB", wnd_x, wnd_y)
+           wnd_x=10
+           wnd_y+=300
         return
 
     # data *= 100.0
@@ -429,28 +430,30 @@ def show_of(data, wnd_name):
     ang, mag = utils.of2polar(data[0], data[1])
     img = utils.of2img(ang,mag)
     cv2.imwrite(filename, img)
-    cv2.imshow(wnd_name, img)
-    cv2.moveWindow(wnd_name, wnd_x, wnd_y)
+    if show:    
+       cv2.imshow(wnd_name, img)
+       cv2.moveWindow(wnd_name, wnd_x, wnd_y)
 
     filename = wnd_name+'-x.jpg'
     cv2.imwrite(filename, image[0])
-    cv2.imshow(wnd_name+"-X", image[0])
-    wnd_x+=300
-    cv2.moveWindow(wnd_name+"-X", wnd_x, wnd_y)
+    if show:
+       cv2.imshow(wnd_name+"-X", image[0])
+       wnd_x+=300
+       cv2.moveWindow(wnd_name+"-X", wnd_x, wnd_y)
 
     filename = wnd_name+'-y.jpg'
     cv2.imwrite(filename, image[1])
-    cv2.imshow(wnd_name+"-Y", image[1])
-    wnd_x+=300
-    cv2.moveWindow(wnd_name+"-Y", wnd_x, wnd_y)
-
-    wnd_x=10
-    wnd_y+=300
+    if show:
+       cv2.imshow(wnd_name+"-Y", image[1])
+       wnd_x+=300
+       cv2.moveWindow(wnd_name+"-Y", wnd_x, wnd_y)
+       wnd_x=10
+       wnd_y+=300
 
     # cv2.waitKey(0)
 
 
-def show_img(data, suffix):
+def show_img(data, suffix, show):
     global wnd_x
     global wnd_y
 
@@ -469,33 +472,46 @@ def show_img(data, suffix):
 
     filename = 'img-1-'+suffix+'.jpg'
     cv2.imwrite(filename, img1)
-    cv2.imshow("IMG 1", img1)
-    cv2.moveWindow("IMG 1", wnd_x, wnd_y)
+    if show:
+       cv2.imshow("IMG 1", img1)
+       cv2.moveWindow("IMG 1", wnd_x, wnd_y)
 
     filename = 'img-2-'+suffix+'.jpg'
     cv2.imwrite(filename, img2)
-    cv2.imshow("IMG 2", img2)
-    wnd_x+=300
-    cv2.moveWindow("IMG 2",  wnd_x, wnd_y)
-
-    wnd_x=10
-    wnd_y+=300
+    if show:
+       cv2.imshow("IMG 2", img2)
+       wnd_x+=300
+       cv2.moveWindow("IMG 2",  wnd_x, wnd_y)
+       wnd_x=10 
+       wnd_y+=300
 
 
 # @profile
 def classTemporal(net, img1_file, img2_file, xflow_file, yflow_file, iter):
 
+    show = True
     grayscale = True
 
     key = get_lmdb_key(img1_file)
 
-    dataset = 'train'
+    dataset = 'val'
+    #dataset = 'train'
 
-    key = "0000000047"
-    #key = "0000000550"
-    #key = "0000000280"
-    #key = "0000000380"
-    #key = "0000000320"
+    key = "0000000047" # val=mountains  train market
+    # key = "0000000550"	# val=plain=komori  train=arm
+    key = "0000000280"  # val=komori train=dragon left
+    key = "0000000380" # val=running
+    key = "0000000320" # val=head
+
+    #key = "0000000020" # val=fingers  train=jump on wall
+    #key = "0000000030" # val=market2  train=shoulder
+    #key = "0000000040" # val=komiri2  train=shoulder
+    #key = "0000000187" # val=punch          train=drop
+    #key = "0000000127" # val=bamboo         train=dragon head
+    #key = "0000000110" # val=dragon leg     train=jump
+    #key = "0000000157" # val=arm? C         train=mountain
+    #key = "0000000147" # val=market3        train=body   N
+
 
     print key
 
@@ -517,7 +533,7 @@ def classTemporal(net, img1_file, img2_file, xflow_file, yflow_file, iter):
     if grayscale:
         if net.blobs['data'].data.shape[1] == 6:
             # 2xRGB
-            data_img = utils.get_data_lmdb("../"+dataset+"-of-imgs-rgb-mpi", key)
+            data_img = utils.get_data_lmdb("../"+dataset+"-of-imgs-rgb-mpi_clean_final_90_10", key)
         else:
             # 2xgrayscale
             data_img = utils.get_data_lmdb("../"+dataset+"-of-imgs-mpi", key)
@@ -636,11 +652,11 @@ def classTemporal(net, img1_file, img2_file, xflow_file, yflow_file, iter):
         y_flow = of_vec[50176:].reshape(224, 224)
 
 
-    show_img(data_img, key+'-'+iter)
-    data_img = utils.get_data_lmdb("../"+dataset+"-of-labels-rgb-mpi", key)
-    show_of(data_img, 'GT-'+key+'-'+iter)
+    show_img(data_img, key+'-'+iter, show)
+    data_img = utils.get_data_lmdb("../"+dataset+"-of-labels-rgb-mpi_clean_final_90_10", key)
+    show_of(data_img, 'GT-'+key+'-'+iter, show)
 #    show_of((of_vec+196.0), 'CNN') # 217.0
-    show_of((of_vec+192.0), 'CNN-'+key+'-'+iter) # 217.0
+    show_of((of_vec+192.0), 'CNN-'+key+'-'+iter, show) # 217.0
     #217.0)*1, 'CNN')
     cv2.waitKey(0)
     sys.exit()

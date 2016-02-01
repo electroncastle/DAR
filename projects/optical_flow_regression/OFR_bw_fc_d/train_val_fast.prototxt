@@ -1,4 +1,4 @@
-name: "train_val"
+name: "OFR_FlowNet"
 layer {
   name: "data"
   type: "Data"
@@ -7,13 +7,18 @@ layer {
     phase: TRAIN
   }
   transform_param {
-    mean_value: 85.0
-    mean_value: 85.0
+    mean_value: 83.0
+    mean_value: 83.0
+    mean_value: 83.0
+    mean_value: 83.0
+    mean_value: 83.0
+    mean_value: 83.0
+#    mean_value: 110.0
   }
   data_param {
-    source: "../train-of-imgs-mpi"
+    source: "../train-of-imgs-rgb-mpi_clean_final_90_10"
 
-    batch_size: 1
+    batch_size: 2
     backend: LMDB
   }
 }
@@ -28,12 +33,13 @@ layer {
     mean_value: 217.0
   }
   data_param {
-    source: "../train-of-labels-rgb-mpi"
-    batch_size: 1
+    source: "../train-of-labels-rgb-mpi_clean_final_90_10"
+    batch_size: 2
     backend: LMDB
   }
 }
 
+#----------------------- TEST ---------------------------
 layer {
   name: "data"
   type: "Data"
@@ -42,12 +48,16 @@ layer {
     phase: TEST
   }
   transform_param {
-    mean_value: 85.0
-    mean_value: 85.0
+    mean_value: 83.0
+    mean_value: 83.0
+    mean_value: 83.0
+    mean_value: 83.0
+    mean_value: 83.0
+    mean_value: 83.0
   }
   data_param {
-    source: "../val-of-imgs-mpi"
-    batch_size: 1
+    source: "../val-of-imgs-rgb-mpi_clean_final_90_10"
+    batch_size: 10
     backend: LMDB
   }
 }
@@ -62,13 +72,15 @@ layer {
     mean_value: 217.0
   }
   data_param {
-    source: "../val-of-labels-rgb-mpi"
-    batch_size: 1
+    source: "../val-of-labels-rgb-mpi_clean_final_90_10"
+    batch_size: 10
     backend: LMDB
   }
 }
+
+
 #-----------------------------------------
-# From VGG16
+#=========================================
 #-----------------------------------------
 layer {
   name: "conv1"
@@ -76,11 +88,11 @@ layer {
   bottom: "data"
   top: "conv1"
   param {
-    lr_mult: 0
-    decay_mult: 0
+    lr_mult: 1
+    decay_mult: 1
   }
   param {
-    lr_mult: 0
+    lr_mult: 2
     decay_mult: 0
   }
   convolution_param {
@@ -269,101 +281,12 @@ layer {
 #  }
 #}
 
-#-----------------------------------------------
-layer {
-  name: "fc7-conv"
-  type: "Convolution"
-  bottom: "fc6-conv"
-  top: "fc7-conv"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-
-  convolution_param {
-    num_output: 2048
-    kernel_size: 1
-
-    bias_filler {
-      type: "constant"
-      value: 0.0001
-    }
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "relu7"
-  type: "ReLU"
-  bottom: "fc7-conv"
-  top: "fc7-conv"
-}
-
-layer {
-  name: "drop7"
-  type: "Dropout"
-  bottom: "fc7-conv"
-  top: "fc7-conv"
-  dropout_param {
-    dropout_ratio: 0.5
-  }
-}
-
-#-----------------------------------------------
-layer {
-  name: "fc8-conv"
-  type: "Convolution"
-  bottom: "fc7-conv"
-  top: "fc8-conv"
-  param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
-  }
-
-  convolution_param {
-    num_output: 2048
-    kernel_size: 1
-
-    bias_filler {
-      type: "constant"
-      value: 0.0001
-    }
-    weight_filler {
-      type: "xavier"
-    }
-  }
-}
-layer {
-  name: "relu8"
-  type: "ReLU"
-  bottom: "fc8-conv"
-  top: "fc8-conv"
-}
-
-layer {
-  name: "drop8"
-  type: "Dropout"
-  bottom: "fc8-conv"
-  top: "fc8-conv"
-  dropout_param {
-    dropout_ratio: 0.5
-  }
-}
 
 #-----------------------------------------------
 layer {
   name: "fc9-conv"
   type: "Convolution"
-  bottom: "fc8-conv"
+  bottom: "fc6-conv"
   top: "fc9-conv"
   param {
     lr_mult: 1

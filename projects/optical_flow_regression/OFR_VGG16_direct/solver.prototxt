@@ -3,12 +3,21 @@ test_iter: 100
 test_interval: 500
 
 # Initialization
-# ADAM from 0-50000
-# with gamma 0.1 at 40000
-base_lr: 1e-4
+# ADAM 0
+base_lr: 1e-8
 
-# from 50000-
+# 5000-
+#base_lr: 1e-8
+
+# 0 - 39000
+# should be better to start with 1e-4
 #base_lr: 1e-5
+
+# resumed from 39000
+#base_lr: 1e-4
+
+# test: from 50000-
+#base_lr: 1e-7
 
 # ADAM from 40000-
 #base_lr: 1e-6
@@ -23,13 +32,13 @@ base_lr: 1e-4
 
 lr_policy: "step"
 gamma: 0.1
-stepsize: 10000
+stepsize: 5000
 display: 20
 max_iter: 5000000
 momentum: 0.9
 weight_decay: 0.0005
 #weight_decay: 0.000001
-snapshot: 1000
+snapshot: 2000
 snapshot_prefix: "snapshot"
 iter_size: 1
 #device_id: [0]

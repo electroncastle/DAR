@@ -7,6 +7,14 @@ from IPython.nbconvert.preprocessors.coalescestreams import coalesce_streams
 import numpy as np
 import matplotlib.pyplot as plt
 
+__author__ = "Jiri Fajtl"
+__email__ = "ok1zjf@gmail.com"
+__status__ = "Research"
+__license__ = "LGPL"
+__date__ = "20/10/2015"
+__version__ = "1.0.0"
+
+
 class Detection:
   decoderName = ''
   className = ''
@@ -109,7 +117,8 @@ def test(rgb_data, flow_data, temp_weight):
 def go():
 
     test_result_flow_filename = '/home/jiri/Lake/DAR/share/datasets/UCF-101/val-1-rnd-result-flow.txt'
-    test_result_rgb_filename = '/home/jiri/Lake/DAR/share/datasets/UCF-101/val-1-rnd-result-rgb.txt'
+#    test_result_rgb_filename = '/home/jiri/Lake/DAR/share/datasets/UCF-101/val-1-rnd-result-rgb.txt'
+    test_result_rgb_filename = '/home/jiri/Lake/DAR/share/datasets/UCF-101/val-1-rnd-result-rgb-789.txt'
 
     imagenet_labels_filename = '/home/jiri/Lake/DAR/share/datasets/UCF-101/labels-new.txt'
 
@@ -154,6 +163,8 @@ def go():
                 break
     else:
         weight = 0.715
+        weight = 0.713
+        weight = 0.6666666
         correctRGBP, correctFlowP, correctP = test(rgb_data, flow_data, weight)
     #
     # print 'UCF101 split 1 validation dataset video num: 3783'

@@ -24,6 +24,7 @@ void setcols(int r, int g, int b, int k)
     colorwheel[k][2] = b;
 }
 
+
 void makecolorwheel()
 {
     // relative lengths of color transitions:
@@ -39,16 +40,18 @@ void makecolorwheel()
     ncols = RY + YG + GC + CB + BM + MR;
     //printf("ncols = %d\n", ncols);
     if (ncols > MAXCOLS)
-	exit(1);
+        exit(1);
+
     int i;
     int k = 0;
-    for (i = 0; i < RY; i++) setcols(255,	   255*i/RY,	 0,	       k++);
-    for (i = 0; i < YG; i++) setcols(255-255*i/YG, 255,		 0,	       k++);
-    for (i = 0; i < GC; i++) setcols(0,		   255,		 255*i/GC,     k++);
-    for (i = 0; i < CB; i++) setcols(0,		   255-255*i/CB, 255,	       k++);
-    for (i = 0; i < BM; i++) setcols(255*i/BM,	   0,		 255,	       k++);
-    for (i = 0; i < MR; i++) setcols(255,	   0,		 255-255*i/MR, k++);
+    for (i = 0; i < RY; i++) setcols(255,           255*i/RY,       0,              k++);
+    for (i = 0; i < YG; i++) setcols(255-255*i/YG,  255,            0,              k++);
+    for (i = 0; i < GC; i++) setcols(0,             255,            255*i/GC,       k++);
+    for (i = 0; i < CB; i++) setcols(0,             255-255*i/CB,   255,            k++);
+    for (i = 0; i < BM; i++) setcols(255*i/BM,      0,              255,            k++);
+    for (i = 0; i < MR; i++) setcols(255,           0,              255-255*i/MR,   k++);
 }
+
 
 void computeColor(float fx, float fy, cv::Vec3b &pix)
 {
@@ -90,10 +93,12 @@ bool unknown_flow(float u, float v)
         || isnan(u) || isnan(v);
 }
 
+
 bool unknown_flow(float *f)
 {
     return unknown_flow(f[0], f[1]);
 }
+
 
 cv::Mat motionToColor(cv::Mat &flow_x, cv::Mat &flow_y, float maxmotion)
 {

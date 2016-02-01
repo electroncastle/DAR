@@ -14,31 +14,6 @@ dar_root = os.environ['DAR_ROOT']
 app_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 
 sys.path.insert(0, dar_root + '/python')
-# import caffe
-# import cv2
-
-plt.rcParams['figure.figsize'] = (10, 10)
-plt.rcParams['image.interpolation'] = 'nearest'
-plt.rcParams['image.cmap'] = 'gray'
-
-# take an array of shape (n, height, width) or (n, height, width, channels)
-# and visualize each (height, width) thing in a grid of size approx. sqrt(n) by sqrt(n)
-def vis_square(data, padsize=1, padval=0):
-    data -= data.min()
-    data /= data.max()
-
-    # force the number of filters to be square
-    n = int(np.ceil(np.sqrt(data.shape[0])))
-    padding = ((0, n ** 2 - data.shape[0]), (0, padsize), (0, padsize)) + ((0, 0),) * (data.ndim - 3)
-    data = np.pad(data, padding, mode='constant', constant_values=(padval, padval))
-
-    # tile the filters into an image
-    data = data.reshape((n, n) + data.shape[1:]).transpose((0, 2, 1, 3) + tuple(range(4, data.ndim + 1)))
-    data = data.reshape((n * data.shape[1], n * data.shape[3]) + data.shape[4:])
-
-    plt.imshow(data)
-
-
 
 
 def loadTestVideos(filename):
@@ -538,13 +513,13 @@ class VideoActionsLabeler(object):
         return fout
 
 
-    def annotate(self):
+    def annotate(self, suffix='s5'):
 
         val_list_filename = dar_root+'/share/datasets/THUMOS2015/thumos15_validation/annotated.txt'
         val_list = np.loadtxt(val_list_filename, str, delimiter=' ')
 
-        fout = self.open_append(dar_root+'/share/datasets/THUMOS2015/detections.txt')
-        fout_ap = self.open_append(dar_root+'/share/datasets/THUMOS2015/detections-ap.txt')
+        fout = self.open_append(dar_root+'/share/datasets/THUMOS2015/detections-'+suffix+'.txt')
+        fout_ap = self.open_append(dar_root+'/share/datasets/THUMOS2015/detections-ap-'+suffix+'.txt')
 
 
         stat = np.array([0.0, 0.0, 0.0])
@@ -562,8 +537,8 @@ class VideoActionsLabeler(object):
             try:
                 # temporal_data = np.loadtxt(video_path+'/temporal.txt', float, delimiter=' ')
                 # spatial_data = np.loadtxt(video_path+'/spatial.txt', float, delimiter=' ')
-                temporal_data = np.loadtxt(video_path+'/temporal-s5.txt', float, delimiter=' ')
-                spatial_data = np.loadtxt(video_path+'/spatial-s5.txt', float, delimiter=' ')
+                temporal_data = np.loadtxt(video_path+'/temporal-'+suffix+'.txt', float, delimiter=' ')
+                spatial_data = np.loadtxt(video_path+'/spatial-'+suffix+'.txt', float, delimiter=' ')
             except:
                 print "Cannot read temporal or spatial data. Finishing..."
                 break
