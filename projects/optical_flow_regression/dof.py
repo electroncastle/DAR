@@ -2,13 +2,13 @@
 from gst.video import video_convert_frame
 
 __author__ = "Jiri Fajtl"
-__copyright__ = "Copyright 2007, The DAR Project"
-__credits__ = [""]
-__license__ = "GPL"
-__version__ = "1.0.1"
-__maintainer__ = "Jiri Fajtl"
 __email__ = "ok1zjf@gmail.com"
-__status__ = "Prototype"
+__status__ = "Research"
+__license__ = "LGPL"
+__date__ = "20/10/2015"
+__version__ = "1.0.0"
+
+
 
 import os
 import io

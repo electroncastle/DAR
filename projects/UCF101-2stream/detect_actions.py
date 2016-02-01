@@ -1,5 +1,13 @@
 #!/usr/bin/python
 
+__author__ = "Jiri Fajtl"
+__email__ = "ok1zjf@gmail.com"
+__status__ = "Research"
+__license__ = "LGPL"
+__date__ = "20/10/2015"
+__version__ = "1.0.0"
+
+
 
 import os
 import io
